@@ -145,9 +145,18 @@ func (this *HttpClient) Request(method string, url_ string, headers map[string]s
     }
 
     transport.Dial = func (network, addr string) (net.Conn, error) {
-        conn, err := net.DialTimeout(network, addr, time.Duration(connectTimeoutMS) * time.Millisecond)
-        if err != nil {
-            return nil, err
+        var conn net.Conn
+        var err error
+        if connectTimeoutMS > 0 {
+            conn, err = net.DialTimeout(network, addr, time.Duration(connectTimeoutMS) * time.Millisecond)
+            if err != nil {
+                return nil, err
+            }
+        } else {
+            conn, err = net.Dial(network, addr)
+            if err != nil {
+                return nil, err
+            }
         }
 
         if timeoutMS > 0 {

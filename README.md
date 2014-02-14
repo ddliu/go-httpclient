@@ -26,10 +26,12 @@ go get github.com/ddliu/go-httpclient
 
 ## Usage
 
-In most cases you just need the `Get` and `Post` method
+In most cases you just need the `Get` and `Post` method:
 
-- `func (this *HttpClient) Get(url string, params map[string]string, headers map[string]string, options map[int]interface{}) (*http.Response, error)`
-- `func (this *HttpClient) Post(url string, params map[string]string, headers map[string]string, isMultipart bool, options map[int]interface{}) (*http.Response, error)`
+```
+func (this *HttpClient) Get(url string, params map[string]string, headers map[string]string, options map[int]interface{}) (*http.Response, error)
+func (this *HttpClient) Post(url string, params map[string]string, headers map[string]string, isMultipart bool, options map[int]interface{}) (*http.Response, error)
+```
 
 ```go
 package main
