@@ -1,5 +1,7 @@
 # go-httpclient
 
+[![Build Status](https://travis-ci.org/ddliu/go-httpclient.png)](https://travis-ci.org/ddliu/go-httpclient)
+
 Advanced HTTP client for golang.
 
 ## Features
