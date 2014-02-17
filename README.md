@@ -26,11 +26,14 @@ go get github.com/ddliu/go-httpclient
 
 ## Usage
 
-In most cases you just need the `Get` and `Post` method:
+In most cases you just need the `NewHttpClient`, `Get` and `Post` method:
 
 ```
-func (this *HttpClient) Get(url string, params map[string]string, headers map[string]string, options map[int]interface{}) (*http.Response, error)
-func (this *HttpClient) Post(url string, params map[string]string, headers map[string]string, isMultipart bool, options map[int]interface{}) (*http.Response, error)
+func NewHttpClient(options map[int]interface{}) *HttpClient
+
+func (this *HttpClient) Get(url string, params map[string]string) (*http.Response, error)
+
+func (this *HttpClient) Post(url string, params map[string]string) (*http.Response, error)
 ```
 
 ```go
@@ -45,23 +48,45 @@ func main() {
     c := httpclient.NewHttpClient(nil)
     res, err := c.Get("http://google.com/search", map[string]string{
         "q": "news",
-    }, nil, nil)
+    })
 
     fmt.Println(res.StatusCode, err)
 
+    // post file
     res, err := c.Post("http://dropbox.com/upload", map[string]string {
         "@file": "/tmp/hello.pdf",
-    }, nil, true, map[int]interface{} {
-        httpclient.TIMEOUT: 60,
     })
 
     fmt.Println(res, err)
 }
 ```
 
-## Options
+In some cases, you may want to specify request headers:
 
-You can specify default options for the `httpclient` instance, and then override it by passing new options for each request.
+```go
+httpclient.NewHttpClient(nil).
+    WithHeader("User-Agent", "Super Robot").
+    WithHeader("custom-header", "value").
+    WithHeaders(map[string]string {
+        "another-header": "another-value",
+        "and-another-header": "another-value",
+    }).
+    Get("http://github.com", nil)
+```
+
+In some cases, you may need other great features:
+
+```go
+httpclient.NewHttpClient(nil).
+    WithOption(http.OPT_TIMEOUT, 60).
+    WithOption(http.OPT_PROXY, "127.0.0.1:1080").
+    WithOption(http.OPT_USERAGENT, "go-httpclient").
+    Get("http://github.com/ddliu", map[string]string {
+        "tab": "repositories",
+    })
+```
+
+## Options
 
 Available options as below:
 
@@ -84,10 +109,13 @@ Available options as below:
 
 - Socks proxy support
 - COOKIE
-- API improvement
 
 ## Changelog
 
 ### v0.1.0 (2014-02-14)
 
 Initial release
+
+### v0.2.0 (2014-02-17)
+
+Rewrite API, make it simple

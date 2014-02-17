@@ -22,7 +22,7 @@ import (
 
 // https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-    VERSION = "0.1.0"
+    VERSION = "0.2.0"
     USERAGENT = "go-httpclient v" + VERSION
 
     PROXY_HTTP = 0
@@ -76,24 +76,14 @@ var defaultOptions = map[int]interface{} {
     OPT_USERAGENT: USERAGENT,
 }
 
-func NewHttpClient(options map[int]interface{}) *HttpClient {
-    return &HttpClient{
-        Options: mergeOptions(defaultOptions, options),
-    }
-}
-
-type HttpClient struct {
-    Options map[int]interface{}
-}
-
-// Start a HTTP request, and returns the response
-func (this *HttpClient) Request(method string, url_ string, headers map[string]string, body io.Reader, options map[int]interface{}) (*http.Response, error) {
-    options = mergeOptions(this.Options, options)
+// Get the http.Client and http.Request for customization
+func Prepare(method string, url_ string, headers map[string]string, body io.Reader, options map[int]interface{}) (*http.Client, *http.Request, error) {
+    options = mergeOptions(defaultOptions, options)
 
     req, err := http.NewRequest(method, url_, body)
 
     if err != nil {
-        return nil, err
+        return nil, nil, err
     }
 
     // OPT_REFERER
@@ -120,13 +110,13 @@ func (this *HttpClient) Request(method string, url_ string, headers map[string]s
 
     if connectTimeoutMS_, ok := options[OPT_CONNECTTIMEOUT_MS]; ok {
         if connectTimeoutMS, ok = connectTimeoutMS_.(int); !ok {
-            return nil, fmt.Errorf("OPT_CONNECTTIMEOUT_MS must be int")
+            return nil, nil, fmt.Errorf("OPT_CONNECTTIMEOUT_MS must be int")
         }
     } else if connectTimeout_, ok := options[OPT_CONNECTTIMEOUT]; ok {
         if connectTimeout, ok := connectTimeout_.(int); ok {
             connectTimeoutMS = connectTimeout * 1000    
         } else {
-            return nil, fmt.Errorf("OPT_CONNECTTIMEOUT must be int")
+            return nil, nil, fmt.Errorf("OPT_CONNECTTIMEOUT must be int")
         }
     }
 
@@ -134,13 +124,13 @@ func (this *HttpClient) Request(method string, url_ string, headers map[string]s
 
     if timeoutMS_, ok := options[OPT_TIMEOUT_MS]; ok {
         if timeoutMS, ok = timeoutMS_.(int); !ok {
-            return nil, fmt.Errorf("OPT_TIMEOUT_MS must be int")
+            return nil, nil, fmt.Errorf("OPT_TIMEOUT_MS must be int")
         }
     } else if timeout_, ok := options[OPT_TIMEOUT]; ok {
         if timeout, ok := timeout_.(int); ok {
             timeoutMS = timeout * 1000    
         } else {
-            return nil, fmt.Errorf("OPT_TIMEOUT must be int")
+            return nil, nil, fmt.Errorf("OPT_TIMEOUT must be int")
         }
     }
 
@@ -190,25 +180,25 @@ func (this *HttpClient) Request(method string, url_ string, headers map[string]s
                 return u, nil
             }
         } else {
-            return nil, fmt.Errorf("OPT_PROXY_FUNC is not a desired function")
+            return nil, nil, fmt.Errorf("OPT_PROXY_FUNC is not a desired function")
         }
     } else {
         var proxytype int
         if proxytype_, ok := options[OPT_PROXYTYPE]; ok {
             if proxytype, ok = proxytype_.(int); !ok || proxytype != PROXY_HTTP {
-                return nil, fmt.Errorf("OPT_PROXYTYPE must be int, and only PROXY_HTTP is currently supported")
+                return nil, nil, fmt.Errorf("OPT_PROXYTYPE must be int, and only PROXY_HTTP is currently supported")
             }
         }
 
         var proxy string
         if proxy_, ok := options[OPT_PROXY]; ok {
             if proxy, ok = proxy_.(string); !ok {
-                return nil, fmt.Errorf("OPT_PROXY must be string")
+                return nil, nil, fmt.Errorf("OPT_PROXY must be string")
             }
             proxy = "http://" + proxy
             proxyUrl, err := url.Parse(proxy)
             if err != nil {
-                return nil, err
+                return nil, nil, err
             }
             transport.Proxy = http.ProxyURL(proxyUrl)
         }
@@ -219,20 +209,20 @@ func (this *HttpClient) Request(method string, url_ string, headers map[string]s
 
     if redirectPolicy_, ok := options[OPT_REDIRECT_POLICY]; ok {
         if redirectPolicy, ok = redirectPolicy_.(func(*http.Request, []*http.Request) error); !ok {
-            return nil, fmt.Errorf("OPT_REDIRECT_POLICY is not a desired function")
+            return nil, nil, fmt.Errorf("OPT_REDIRECT_POLICY is not a desired function")
         }
     } else {
         var followlocation bool
         if followlocation_, ok := options[OPT_FOLLOWLOCATION]; ok {
             if followlocation, ok = followlocation_.(bool); !ok {
-                return nil, fmt.Errorf("OPT_FOLLOWLOCATION must be bool")
+                return nil, nil, fmt.Errorf("OPT_FOLLOWLOCATION must be bool")
             }
         }
 
         var maxredirs int
         if maxredirs_, ok := options[OPT_MAXREDIRS]; ok {
             if maxredirs, ok = maxredirs_.(int); !ok {
-                return nil, fmt.Errorf("OPT_MAXREDIRS must be int")
+                return nil, nil, fmt.Errorf("OPT_MAXREDIRS must be int")
             }
         }
 
@@ -254,59 +244,115 @@ func (this *HttpClient) Request(method string, url_ string, headers map[string]s
         Transport: transport,
         CheckRedirect: redirectPolicy,
     }
+
+    return client, req, nil
+}
+
+func Do(method string, url_ string, headers map[string]string, body io.Reader, options map[int]interface{}) (*http.Response, error) {
+    client, req, err := Prepare(method, url_, headers, body, options)
+    if err != nil {
+        return nil, err
+    }
+
     return client.Do(req)
 }
 
+func NewHttpClient(options map[int]interface{}) *HttpClient {
+    return &HttpClient{
+        Options: mergeOptions(defaultOptions, options),
+        Headers: make(map[string]string),
+    }
+}
+
+type HttpClient struct {
+    Options map[int]interface{}
+    Headers map[string]string
+}
+
+func (this *HttpClient) WithOption(k int, v interface{}) *HttpClient {
+    this.Options[k] = v
+
+    return this
+}
+
+func (this *HttpClient) WithOptions(m map[int]interface{}) *HttpClient {
+    for k, v := range m {
+        this.WithOption(k, v)
+    }
+
+    return this
+}
+
+func (this *HttpClient) WithHeader(k string, v string) *HttpClient {
+    this.Headers[k] = v
+
+    return this
+}
+
+func (this *HttpClient) WithHeaders(m map[string]string) *HttpClient {
+    for k, v := range m {
+        this.WithHeader(k, v)
+    }
+
+    return this
+}
+
 // The GET request
-func (this *HttpClient) Get(url string, params map[string]string, headers map[string]string, options map[int]interface{}) (*http.Response, error) {
+func (this *HttpClient) Get(url string, params map[string]string) (*http.Response, error) {
     url = addParams(url, params)
 
-    return this.Request("GET", url, headers, nil, options)
+    return Do("GET", url, this.Headers, nil, this.Options)
 }
 
 // The POST request
 // 
 // With multipart set to true, the request will be encoded as "multipart/form-data". 
 // If any of the params key starts with "@", it is considered as a form file (similar to CURL but different).
-func (this *HttpClient) Post(url string, params map[string]string, headers map[string]string, isMultipart bool, options map[int]interface{}) (*http.Response, error) {
-    var body io.Reader
-
-    if isMultipart {
-        body = &bytes.Buffer{}
-        bodyWriter, _ := body.(io.Writer)
-        writer := multipart.NewWriter(bodyWriter)
-
-        // check files
-        for k, v := range params {
-            // is file
-            if k[0] == '@' {
-                err := addFormFile(writer, k[1:], v)
-                if err != nil {
-                    return nil, err
-                }
-            } else {
-                writer.WriteField(k, v)
-            }
-        }
-        if headers == nil {
-            headers = make(map[string]string)
-        }
-
-        headers["Content-Type"] = writer.FormDataContentType()
-        err := writer.Close()
-        if err != nil {
-            return nil, err
-        }
-
-    } else {
-        if headers == nil {
-            headers = make(map[string]string)
-        }
-        headers["Content-Type"] = "application/x-www-form-urlencoded"
-        body = strings.NewReader(paramsToString(params))
+func (this *HttpClient) Post(url string, params map[string]string) (*http.Response, error) {
+    if checkParamFile(params) {
+        return this.PostMultipart(url, params)
     }
 
-    return this.Request("POST", url, headers, body, options)
+    headers := this.Headers
+    if headers == nil {
+        headers = make(map[string]string)
+    }
+    headers["Content-Type"] = "application/x-www-form-urlencoded"
+    body := strings.NewReader(paramsToString(params))
+
+    return Do("POST", url, headers, body, this.Options)
+}
+
+// Post with the request encoded as "multipart/form-data".
+func (this *HttpClient) PostMultipart(url string, params map[string]string) (*http.Response, error) {
+    body := &bytes.Buffer{}
+    // bodyWriter, _ := body.(io.Writer)
+    writer := multipart.NewWriter(body)
+
+    // check files
+    for k, v := range params {
+        // is file
+        if k[0] == '@' {
+            err := addFormFile(writer, k[1:], v)
+            if err != nil {
+                return nil, err
+            }
+        } else {
+            writer.WriteField(k, v)
+        }
+    }
+    headers := this.Headers
+    if headers == nil {
+        headers = make(map[string]string)
+    }
+
+    headers["Content-Type"] = writer.FormDataContentType()
+    err := writer.Close()
+    if err != nil {
+        return nil, err
+    }
+
+    return Do("POST", url, headers, body, this.Options)
 }
 
 func paramsToString(params map[string]string) string {
@@ -376,4 +422,14 @@ func mergeOptions(options ...map[int]interface{}) map[int]interface{} {
     }
 
     return rst
+}
+
+func checkParamFile(params map[string]string) bool{
+    for k, _ := range params {
+        if k[0] == '@' {
+            return true
+        }
+    }
+
+    return false
 }

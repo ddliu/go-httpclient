@@ -22,10 +22,9 @@ type ResponseInfo struct {
 }
 
 func TestRequest(t *testing.T) {
-    c := NewHttpClient(nil)
-
     // get
-    res, err := c.Get("http://httpbin.org/get", nil, nil, nil)
+    res, err := NewHttpClient(nil).
+        Get("http://httpbin.org/get", nil)
 
     if err != nil {
         t.Error("get failed", err)
@@ -36,10 +35,11 @@ func TestRequest(t *testing.T) {
     }
 
     // post
-    res, err = c.Post("http://httpbin.org/post", map[string]string {
-        "username": "dong",
-        "password": "******",
-    }, nil, false, nil)
+    res, err = NewHttpClient(nil).
+        Post("http://httpbin.org/post", map[string]string {
+            "username": "dong",
+            "password": "******",
+        })
 
     if err != nil {
         t.Error("post failed", err)
@@ -70,10 +70,11 @@ func TestRequest(t *testing.T) {
     }
 
     // post, multipart
-    res, err = c.Post("http://httpbin.org/post", map[string]string {
-        "message": "Hello world!",
-        "@image": "README.md",
-    }, nil, true, nil)
+    res, err = NewHttpClient(nil).
+        Post("http://httpbin.org/post", map[string]string {
+            "message": "Hello world!",
+            "@image": "README.md",
+        })
 
     if err != nil {
         t.Error(err)
@@ -113,15 +114,11 @@ func TestRequest(t *testing.T) {
 }
 
 func TestHeaders(t *testing.T) {
-
-    c := NewHttpClient(nil)
-
     // set referer in options
-    res, err := c.Get("http://httpbin.org/get", nil, map[string]string {
-        "header1": "value1",
-    }, map[int]interface{} {
-        OPT_REFERER: "http://google.com",
-    })
+    res, err := NewHttpClient(nil).
+        WithHeader("header1", "value1").
+        WithOption(OPT_REFERER, "http://google.com").
+        Get("http://httpbin.org/get", nil)
 
     if err != nil {
         t.Error(err)
@@ -160,13 +157,11 @@ func TestHeaders(t *testing.T) {
 }
 
 func _TestProxy(t *testing.T) {
-    c := NewHttpClient(nil)
-
     proxy := "127.0.0.1:1080"
 
-    res, err := c.Get("http://httpbin.org/get", nil, nil, map[int]interface{} {
-        OPT_PROXY: proxy,
-    })
+    res, err := NewHttpClient(nil).
+        WithOption(OPT_PROXY, proxy).
+        Get("http://httpbin.org/get", nil)
 
     if err != nil {
         t.Error(err)
@@ -176,11 +171,11 @@ func _TestProxy(t *testing.T) {
         t.Error("StatusCode is not 200")
     }
 
-    res, err = c.Get("http://httpbin.org/get", nil, nil, map[int]interface{} {
-        OPT_PROXY_FUNC: func(*http.Request) (int, string, error) {
+    res, err = NewHttpClient(nil).
+        WithOption(OPT_PROXY_FUNC, func(*http.Request) (int, string, error) {
             return PROXY_HTTP, proxy, nil
-        },
-    })
+        }).
+        Get("http://httpbin.org/get", nil)
 
     if err != nil {
         t.Error(err)
@@ -192,12 +187,10 @@ func _TestProxy(t *testing.T) {
 }
 
 func TestTimeout(t *testing.T) {
-    c := NewHttpClient(nil)
-
     // connect timeout
-    res, err := c.Get("http://httpbin.org/get", nil, nil, map[int]interface{} {
-        OPT_CONNECTTIMEOUT_MS: 1,
-    })
+    res, err := NewHttpClient(nil).
+        WithOption(OPT_CONNECTTIMEOUT_MS, 1).
+        Get("http://httpbin.org/get", nil)
 
     if err == nil {
         t.Error("OPT_CONNECTTIMEOUT_MS does not work")
@@ -208,9 +201,9 @@ func TestTimeout(t *testing.T) {
     }
 
     // timeout
-    res, err = c.Get("http://httpbin.org/delay/3", nil, nil, map[int]interface{} {
-        OPT_TIMEOUT: 3,
-    })
+    res, err = NewHttpClient(nil).
+        WithOption(OPT_TIMEOUT, 3).
+        Get("http://httpbin.org/delay/3", nil)
 
     if err == nil {
         t.Error("OPT_TIMEOUT does not work")
@@ -221,9 +214,9 @@ func TestTimeout(t *testing.T) {
     }
 
     // no timeout
-    res, err = c.Get("http://httpbin.org/delay/3", nil, nil, map[int]interface{} {
-        OPT_TIMEOUT: 100,
-    })
+    res, err = NewHttpClient(nil).
+        WithOption(OPT_TIMEOUT, 100).
+        Get("http://httpbin.org/delay/3", nil)
 
     if err != nil {
         t.Error("OPT_TIMEOUT does not work properly")
@@ -235,13 +228,13 @@ func TestTimeout(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
-    c := NewHttpClient(nil)
-
     // follow locatioin
-    res, err := c.Get("http://httpbin.org/redirect/3", nil, nil, map[int]interface{} {
-        OPT_FOLLOWLOCATION: true,
-        OPT_MAXREDIRS: 10,
-    })
+    res, err := NewHttpClient(nil).
+        WithOptions(map[int]interface{} {
+            OPT_FOLLOWLOCATION: true,
+            OPT_MAXREDIRS: 10,
+        }).
+        Get("http://httpbin.org/redirect/3", nil)
 
     if err != nil {
         t.Error(err)
@@ -252,9 +245,9 @@ func TestRedirect(t *testing.T) {
     }
 
     // no follow
-    res, err = c.Get("http://httpbin.org/redirect/3", nil, nil, map[int]interface{} {
-        OPT_FOLLOWLOCATION: false,
-    })
+    res, err = NewHttpClient(nil).
+        WithOption(OPT_FOLLOWLOCATION, false).
+        Get("http://httpbin.org/redirect/3", nil)
 
     if err == nil {
         t.Error("Must not follow location")
@@ -269,9 +262,9 @@ func TestRedirect(t *testing.T) {
     }
 
     // maxredirs
-    res, err = c.Get("http://httpbin.org/redirect/3", nil, nil, map[int]interface{} {
-        OPT_MAXREDIRS: 2,
-    })
+    res, err = NewHttpClient(nil).
+        WithOption(OPT_MAXREDIRS, 2).
+        Get("http://httpbin.org/redirect/3", nil)
 
     if err == nil {
         t.Error("Must not follow through")
@@ -286,15 +279,15 @@ func TestRedirect(t *testing.T) {
     }
 
     // custom redirect policy
-    res, err = c.Get("http://httpbin.org/redirect/3", nil, nil, map[int]interface{} {
-        OPT_REDIRECT_POLICY: func(req *http.Request, via []*http.Request) error {
+    res, err = NewHttpClient(nil).
+        WithOption(OPT_REDIRECT_POLICY, func(req *http.Request, via []*http.Request) error {
             if req.URL.String() == "http://httpbin.org/redirect/1" {
                 return fmt.Errorf("should stop here")
             }
 
             return nil
-        },
-    })
+        }).
+        Get("http://httpbin.org/redirect/3", nil)
 
     if err == nil {
         t.Error("Must not follow through")
