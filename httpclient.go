@@ -134,6 +134,11 @@ func Prepare(method string, url_ string, headers map[string]string, body io.Read
         }
     }
 
+    // fix connect timeout(important, or it might cause a long time wait during connection)
+    if timeoutMS > 0 && (connectTimeoutMS > timeoutMS || connectTimeoutMS == 0) {
+        connectTimeoutMS = timeoutMS
+    }
+
     transport.Dial = func (network, addr string) (net.Conn, error) {
         var conn net.Conn
         var err error
