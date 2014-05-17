@@ -22,7 +22,7 @@ import (
 
 // https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-    VERSION = "0.2.0"
+    VERSION = "0.2.1"
     USERAGENT = "go-httpclient v" + VERSION
 
     PROXY_HTTP = 0
@@ -76,14 +76,20 @@ var defaultOptions = map[int]interface{} {
     OPT_USERAGENT: USERAGENT,
 }
 
-// Get the http.Client and http.Request for customization
-func Prepare(method string, url_ string, headers map[string]string, body io.Reader, options map[int]interface{}) (*http.Client, *http.Request, error) {
+// do not use new http client when following options changed
+var noChangeClientOptions = []int {
+    OPT_REFERER,
+    OPT_USERAGENT,
+}
+
+// Get the http.Request
+func PrepareRequest(method string, url_ string, headers map[string]string, body io.Reader, options map[int]interface{}) (*http.Request, error) {
     options = mergeOptions(defaultOptions, options)
 
     req, err := http.NewRequest(method, url_, body)
 
     if err != nil {
-        return nil, nil, err
+        return nil, err
     }
 
     // OPT_REFERER
@@ -104,19 +110,26 @@ func Prepare(method string, url_ string, headers map[string]string, body io.Read
         req.Header.Set(k, v)
     }
 
+    return req, nil
+}
+
+// Get the http.Client for customization
+func PrepareClient(options map[int]interface{}) (*http.Client, error) {
+    options = mergeOptions(defaultOptions, options)
+
     transport := &http.Transport{}
 
     connectTimeoutMS := 0
 
     if connectTimeoutMS_, ok := options[OPT_CONNECTTIMEOUT_MS]; ok {
         if connectTimeoutMS, ok = connectTimeoutMS_.(int); !ok {
-            return nil, nil, fmt.Errorf("OPT_CONNECTTIMEOUT_MS must be int")
+            return nil, fmt.Errorf("OPT_CONNECTTIMEOUT_MS must be int")
         }
     } else if connectTimeout_, ok := options[OPT_CONNECTTIMEOUT]; ok {
         if connectTimeout, ok := connectTimeout_.(int); ok {
             connectTimeoutMS = connectTimeout * 1000    
         } else {
-            return nil, nil, fmt.Errorf("OPT_CONNECTTIMEOUT must be int")
+            return nil, fmt.Errorf("OPT_CONNECTTIMEOUT must be int")
         }
     }
 
@@ -124,13 +137,13 @@ func Prepare(method string, url_ string, headers map[string]string, body io.Read
 
     if timeoutMS_, ok := options[OPT_TIMEOUT_MS]; ok {
         if timeoutMS, ok = timeoutMS_.(int); !ok {
-            return nil, nil, fmt.Errorf("OPT_TIMEOUT_MS must be int")
+            return nil, fmt.Errorf("OPT_TIMEOUT_MS must be int")
         }
     } else if timeout_, ok := options[OPT_TIMEOUT]; ok {
         if timeout, ok := timeout_.(int); ok {
             timeoutMS = timeout * 1000    
         } else {
-            return nil, nil, fmt.Errorf("OPT_TIMEOUT must be int")
+            return nil, fmt.Errorf("OPT_TIMEOUT must be int")
         }
     }
 
@@ -185,25 +198,25 @@ func Prepare(method string, url_ string, headers map[string]string, body io.Read
                 return u, nil
             }
         } else {
-            return nil, nil, fmt.Errorf("OPT_PROXY_FUNC is not a desired function")
+            return nil, fmt.Errorf("OPT_PROXY_FUNC is not a desired function")
         }
     } else {
         var proxytype int
         if proxytype_, ok := options[OPT_PROXYTYPE]; ok {
             if proxytype, ok = proxytype_.(int); !ok || proxytype != PROXY_HTTP {
-                return nil, nil, fmt.Errorf("OPT_PROXYTYPE must be int, and only PROXY_HTTP is currently supported")
+                return nil, fmt.Errorf("OPT_PROXYTYPE must be int, and only PROXY_HTTP is currently supported")
             }
         }
 
         var proxy string
         if proxy_, ok := options[OPT_PROXY]; ok {
             if proxy, ok = proxy_.(string); !ok {
-                return nil, nil, fmt.Errorf("OPT_PROXY must be string")
+                return nil, fmt.Errorf("OPT_PROXY must be string")
             }
             proxy = "http://" + proxy
             proxyUrl, err := url.Parse(proxy)
             if err != nil {
-                return nil, nil, err
+                return nil, err
             }
             transport.Proxy = http.ProxyURL(proxyUrl)
         }
@@ -214,20 +227,20 @@ func Prepare(method string, url_ string, headers map[string]string, body io.Read
 
     if redirectPolicy_, ok := options[OPT_REDIRECT_POLICY]; ok {
         if redirectPolicy, ok = redirectPolicy_.(func(*http.Request, []*http.Request) error); !ok {
-            return nil, nil, fmt.Errorf("OPT_REDIRECT_POLICY is not a desired function")
+            return nil, fmt.Errorf("OPT_REDIRECT_POLICY is not a desired function")
         }
     } else {
         var followlocation bool
         if followlocation_, ok := options[OPT_FOLLOWLOCATION]; ok {
             if followlocation, ok = followlocation_.(bool); !ok {
-                return nil, nil, fmt.Errorf("OPT_FOLLOWLOCATION must be bool")
+                return nil, fmt.Errorf("OPT_FOLLOWLOCATION must be bool")
             }
         }
 
         var maxredirs int
         if maxredirs_, ok := options[OPT_MAXREDIRS]; ok {
             if maxredirs, ok = maxredirs_.(int); !ok {
-                return nil, nil, fmt.Errorf("OPT_MAXREDIRS must be int")
+                return nil, fmt.Errorf("OPT_MAXREDIRS must be int")
             }
         }
 
@@ -250,16 +263,7 @@ func Prepare(method string, url_ string, headers map[string]string, body io.Read
         CheckRedirect: redirectPolicy,
     }
 
-    return client, req, nil
-}
-
-func Do(method string, url_ string, headers map[string]string, body io.Reader, options map[int]interface{}) (*http.Response, error) {
-    client, req, err := Prepare(method, url_, headers, body, options)
-    if err != nil {
-        return nil, err
-    }
-
-    return client.Do(req)
+    return client, nil
 }
 
 func NewHttpClient(options map[int]interface{}) *HttpClient {
@@ -272,10 +276,16 @@ func NewHttpClient(options map[int]interface{}) *HttpClient {
 type HttpClient struct {
     Options map[int]interface{}
     Headers map[string]string
+    client *http.Client
 }
 
 func (this *HttpClient) WithOption(k int, v interface{}) *HttpClient {
     this.Options[k] = v
+
+    // reset client if needed
+    if needChangeClient(k) && this.client != nil {
+        this.client = nil
+    }
 
     return this
 }
@@ -302,11 +312,28 @@ func (this *HttpClient) WithHeaders(m map[string]string) *HttpClient {
     return this
 }
 
+func (this *HttpClient) Do(method string, url string, headers map[string]string, body io.Reader) (*http.Response, error) {
+    if this.client == nil {
+        var err error
+        this.client, err = PrepareClient(this.Options)
+
+        if err != nil {
+            return nil, err
+        }
+    }
+
+    req, err := PrepareRequest(method, url, headers, body, this.Options)
+    if err != nil {
+        return nil, err
+    }
+    return this.client.Do(req)
+}
+
 // The GET request
 func (this *HttpClient) Get(url string, params map[string]string) (*http.Response, error) {
     url = addParams(url, params)
 
-    return Do("GET", url, this.Headers, nil, this.Options)
+    return this.Do("GET", url, this.Headers, nil)
 }
 
 // The POST request
@@ -325,7 +352,7 @@ func (this *HttpClient) Post(url string, params map[string]string) (*http.Respon
     headers["Content-Type"] = "application/x-www-form-urlencoded"
     body := strings.NewReader(paramsToString(params))
 
-    return Do("POST", url, headers, body, this.Options)
+    return this.Do("POST", url, headers, body)
 }
 
 // Post with the request encoded as "multipart/form-data".
@@ -357,7 +384,7 @@ func (this *HttpClient) PostMultipart(url string, params map[string]string) (*ht
         return nil, err
     }
 
-    return Do("POST", url, headers, body, this.Options)
+    return this.Do("POST", url, headers, body)
 }
 
 func paramsToString(params map[string]string) string {
@@ -432,6 +459,16 @@ func mergeOptions(options ...map[int]interface{}) map[int]interface{} {
 func checkParamFile(params map[string]string) bool{
     for k, _ := range params {
         if k[0] == '@' {
+            return true
+        }
+    }
+
+    return false
+}
+
+func needChangeClient(opt int) bool {
+    for _, v := range noChangeClientOptions {
+        if opt != v {
             return true
         }
     }

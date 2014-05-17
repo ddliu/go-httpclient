@@ -119,3 +119,7 @@ Initial release
 ### v0.2.0 (2014-02-17)
 
 Rewrite API, make it simple
+
+### v0.2.1 (2014-05-18)
+
+Make `http.Client` reusable
