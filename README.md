@@ -10,6 +10,7 @@ Advanced HTTP client for golang.
 - Direct file upload
 - Timeout
 - Proxy(HTTP, <del>SOCKS5, SOCKS4, SOCKS4A</del>)
+- Cookie
 - Redirect Policy
 
 ## Why
@@ -26,26 +27,36 @@ go get github.com/ddliu/go-httpclient
 
 ## Usage
 
-In most cases you just need the `NewHttpClient`, `Get` and `Post` method:
+### Initialize
+
+Use `NewHttpClient` to create a client.
 
 ```
-func NewHttpClient(options map[int]interface{}) *HttpClient
+package main
 
+import (
+    "github.com/ddliu/go-httpclient"
+)
+
+var c := httpclient.NewHttpClient(map[int]interface{} {
+    httpclient.OPT_COOKIEJAR: true,
+    httpclient.OPT_USERAGENT: "my awsome httpclient",
+})
+```
+
+The `httpclient.OPT_XXX` keys are global options of this client, they are shared between different HTTP requests.
+
+### GET/POST
+
+In most cases you just need the `Get` and `Post` method after initializing:
+
+```
 func (this *HttpClient) Get(url string, params map[string]string) (*http.Response, error)
 
 func (this *HttpClient) Post(url string, params map[string]string) (*http.Response, error)
 ```
 
 ```go
-package main
-
-import (
-    "github.com/ddliu/go-httpclient"
-    "fmt"
-)
-
-func main() {
-    c := httpclient.NewHttpClient(nil)
     res, err := c.Get("http://google.com/search", map[string]string{
         "q": "news",
     })
@@ -58,32 +69,48 @@ func main() {
     })
 
     fmt.Println(res, err)
-}
 ```
 
-In some cases, you may want to specify request headers:
+### Customize Request
+
+Before you start a new HTTP request with `Get` or `Post` method, you can specify options, headers or cookies.
 
 ```go
-httpclient.NewHttpClient(nil).
+c.
     WithHeader("User-Agent", "Super Robot").
     WithHeader("custom-header", "value").
     WithHeaders(map[string]string {
         "another-header": "another-value",
         "and-another-header": "another-value",
     }).
+    WithOption(httpclent.OPT_TIMEOUT, 60).
+    WithCookie(&http.Cookie{
+        Name: "uid",
+        Value: "123",
+    }).
     Get("http://github.com", nil)
 ```
 
-In some cases, you may need other great features:
+### Concurrent Safe
+
+If you've created one client and want to start many requests concurrently, remember to call the `Begin` method when you begin:
 
 ```go
-httpclient.NewHttpClient(nil).
-    WithOption(http.OPT_TIMEOUT, 60).
-    WithOption(http.OPT_PROXY, "127.0.0.1:1080").
-    WithOption(http.OPT_USERAGENT, "go-httpclient").
-    Get("http://github.com/ddliu", map[string]string {
-        "tab": "repositories",
-    })
+c := httpclient.NewHttpClient(nil)
+
+go func() {
+    c.
+        Begin().
+        WithHeader("Req-A", "a").
+        Get("http://google.com")
+}()
+go func() {
+    c.
+        Begin().
+        WithHeader("Req-B", "b").
+        Get("http://google.com")
+}()
+
 ```
 
 ## Options
@@ -97,7 +124,7 @@ Available options as below:
 - `OPT_PROXYTYPE`: Specify the proxy type. Valid options are `PROXY_HTTP`, `PROXY_SOCKS4`, `PROXY_SOCKS5`, `PROXY_SOCKS4A`. Only `PROXY_HTTP` is supported currently. 
 - `OPT_TIMEOUT`: The maximum number of seconds to allow httpclient functions to execute.
 - `OPT_TIMEOUT_MS`: The maximum number of milliseconds to allow httpclient functions to execute.
-- `OPT_COOKIEJAR`: TODO
+- `OPT_COOKIEJAR`: Set to `true` to enable the default cookiejar, or you can set to a `http.CookieJar` instance to use a customized jar.
 - `OPT_INTERFACE`: TODO
 - `OPT_PROXY`: Proxy host and port(127.0.0.1:1080).
 - `OPT_REFERER`: The `Referer` header of the request.
@@ -108,7 +135,6 @@ Available options as below:
 ## TODO
 
 - Socks proxy support
-- COOKIE
 
 ## Changelog
 
@@ -123,3 +149,11 @@ Rewrite API, make it simple
 ### v0.2.1 (2014-05-18)
 
 Make `http.Client` reusable
+
+### v0.3.0 (2014-05-20)
+
+API improvements
+
+Cookie support
+
+Concurrent safe

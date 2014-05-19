@@ -19,6 +19,7 @@ type ResponseInfo struct {
     Form map[string]string `json:"form"`
     Files map[string]string `json:"files"`
     Headers map[string]string  `json:"headers"`
+    Cookies map[string]string  `json:"cookies"`
 }
 
 func TestRequest(t *testing.T) {
@@ -299,5 +300,144 @@ func TestRedirect(t *testing.T) {
 
     if res.StatusCode != 302 || res.Header.Get("Location") != "/redirect/1" {
         t.Error("OPT_REDIRECT_POLICY does not work properly")
+    }
+}
+
+func TestCookie(t *testing.T) {
+    c := NewHttpClient(map[int]interface{} {
+        OPT_COOKIEJAR: true,
+    })
+
+    res, err := c.
+        WithCookie(&http.Cookie {
+            Name: "username",
+            Value: "dong",
+        }).
+        Get("http://httpbin.org/cookies", nil)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    defer res.Body.Close()
+
+    body, err := ioutil.ReadAll(res.Body)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    var info ResponseInfo
+
+    err = json.Unmarshal(body, &info)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    if username, ok := info.Cookies["username"]; !ok || username != "dong" {
+        t.Error("cookie is not set properly")
+    }
+
+    // get old cookie
+    res, err = c.
+        Get("http://httpbin.org/cookies", nil)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    defer res.Body.Close()
+
+    body, err = ioutil.ReadAll(res.Body)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    err = json.Unmarshal(body, &info)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    if username, ok := info.Cookies["username"]; !ok || username != "dong" {
+        t.Error("cookie lost")
+    }
+
+    // update cookie
+    res, err = c.
+        WithCookie(&http.Cookie {
+            Name: "username",
+            Value: "octcat",
+        }).
+        Get("http://httpbin.org/cookies", nil)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    defer res.Body.Close()
+
+    body, err = ioutil.ReadAll(res.Body)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    err = json.Unmarshal(body, &info)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    if username, ok := info.Cookies["username"]; !ok || username != "octcat" {
+        t.Error("cookie update failed")
+    }
+}
+
+func _TestCurrentUA(ch chan bool, t *testing.T, c *HttpClient, ua string) {
+    res, err := c.
+        Begin().
+        WithOption(OPT_USERAGENT, ua).
+        Get("http://httpbin.org/headers", nil)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    defer res.Body.Close()
+
+    body, err := ioutil.ReadAll(res.Body)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    var info ResponseInfo
+    err = json.Unmarshal(body, &info)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    if resUA, ok := info.Headers["User-Agent"]; !ok || resUA != ua {
+        t.Error("TestCurrentUA failed")
+    }
+
+    ch <- true
+}
+
+func TestConcurrent(t *testing.T) {
+    total := 100
+    chs := make([]chan bool, total)
+    c := NewHttpClient(nil)
+    for i := 0; i < total; i++ {
+        chs[i] = make(chan bool)
+        go _TestCurrentUA(chs[i], t, c, fmt.Sprint("go-httpclient UA-", i))
+    }
+
+    for _, ch := range chs {
+        <- ch
     }
 }

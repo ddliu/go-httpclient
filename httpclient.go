@@ -10,19 +10,21 @@ import (
 
     "os"
     "io"
+    "sync"
 
     "path/filepath"
 
     "net"
     "net/http"
     "net/url"
+    "net/http/cookiejar"
 
     "mime/multipart"
 )
 
 // https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-    VERSION = "0.2.1"
+    VERSION = "0.3.0"
     USERAGENT = "go-httpclient v" + VERSION
 
     PROXY_HTTP = 0
@@ -74,18 +76,28 @@ var defaultOptions = map[int]interface{} {
     OPT_MAXREDIRS: 10,
     OPT_AUTOREFERER: true,
     OPT_USERAGENT: USERAGENT,
+    OPT_COOKIEJAR: true,
 }
 
-// do not use new http client when following options changed
-var noChangeClientOptions = []int {
-    OPT_REFERER,
-    OPT_USERAGENT,
+// following options will affect transport
+var transportOptions = []int {
+    OPT_CONNECTTIMEOUT,
+    OPT_CONNECTTIMEOUT_MS,
+    OPT_PROXYTYPE,
+    OPT_TIMEOUT,
+    OPT_TIMEOUT_MS,
+    OPT_INTERFACE,
+    OPT_PROXY,
+    OPT_PROXY_FUNC,
+}
+
+// following options will affect cookie jar
+var jarOptions = []int {
+    OPT_COOKIEJAR,
 }
 
 // Get the http.Request
-func PrepareRequest(method string, url_ string, headers map[string]string, body io.Reader, options map[int]interface{}) (*http.Request, error) {
-    options = mergeOptions(defaultOptions, options)
-
+func prepareRequest(method string, url_ string, headers map[string]string, body io.Reader, options map[int]interface{}) (*http.Request, error) {
     req, err := http.NewRequest(method, url_, body)
 
     if err != nil {
@@ -113,10 +125,7 @@ func PrepareRequest(method string, url_ string, headers map[string]string, body 
     return req, nil
 }
 
-// Get the http.Client for customization
-func PrepareClient(options map[int]interface{}) (*http.Client, error) {
-    options = mergeOptions(defaultOptions, options)
-
+func prepareTransport(options map[int]interface{}) (http.RoundTripper, error) {
     transport := &http.Transport{}
 
     connectTimeoutMS := 0
@@ -222,7 +231,10 @@ func PrepareClient(options map[int]interface{}) (*http.Client, error) {
         }
     }
 
-    // redirect
+    return transport, nil
+}
+
+func prepareRedirect(options map[int]interface{}) (func(req *http.Request, via []*http.Request) error, error) {
     var redirectPolicy func(req *http.Request, via []*http.Request) error
 
     if redirectPolicy_, ok := options[OPT_REDIRECT_POLICY]; ok {
@@ -258,33 +270,93 @@ func PrepareClient(options map[int]interface{}) (*http.Client, error) {
         }
     }
 
-    client := &http.Client{
-        Transport: transport,
-        CheckRedirect: redirectPolicy,
+    return redirectPolicy, nil
+}
+
+func prepareJar(options map[int]interface{}) (http.CookieJar, error) {
+    var jar http.CookieJar
+    var err error
+    if optCookieJar_, ok := options[OPT_COOKIEJAR]; ok {
+        // is bool
+        if optCookieJar, ok := optCookieJar_.(bool); ok {
+            // default jar
+            if optCookieJar {
+                // TODO: PublicSuffixList
+                jar, err = cookiejar.New(nil)
+                if err != nil {
+                    return nil, err
+                }
+            }
+        } else if optCookieJar, ok := optCookieJar_.(http.CookieJar); ok {
+            jar = optCookieJar
+        } else {
+            return nil, fmt.Errorf("invalid cookiejar")
+        }
     }
 
-    return client, nil
+    return jar, nil
 }
 
 func NewHttpClient(options map[int]interface{}) *HttpClient {
-    return &HttpClient{
-        Options: mergeOptions(defaultOptions, options),
+    c := &HttpClient{
+        Options: options,
         Headers: make(map[string]string),
+        reuseTransport: true,
+        reuseJar: true,
     }
+
+    return c
 }
 
 type HttpClient struct {
     Options map[int]interface{}
     Headers map[string]string
-    client *http.Client
+    oneTimeOptions map[int]interface{}
+    oneTimeHeaders map[string]string
+    oneTimeCookies []*http.Cookie
+    transport http.RoundTripper
+    jar http.CookieJar
+    reuseTransport bool
+    reuseJar bool
+    lock *sync.Mutex
 }
 
-func (this *HttpClient) WithOption(k int, v interface{}) *HttpClient {
-    this.Options[k] = v
+func (this *HttpClient) Begin() *HttpClient {
+    if this.lock == nil {
+        this.lock = new(sync.Mutex)
+    }
+    this.lock.Lock()
 
-    // reset client if needed
-    if needChangeClient(k) && this.client != nil {
-        this.client = nil
+    return this
+}
+
+func (this *HttpClient) reset() {
+    this.oneTimeOptions = nil
+    this.oneTimeHeaders = nil
+    this.oneTimeCookies = nil
+    this.reuseTransport = true
+    this.reuseJar = true
+
+    if this.lock != nil {
+        this.lock.Unlock()
+    }
+}
+
+// change the oneTimeOptions
+func (this *HttpClient) WithOption(k int, v interface{}) *HttpClient {
+    if this.oneTimeOptions == nil {
+        this.oneTimeOptions = make(map[int]interface{})
+    }
+    this.oneTimeOptions[k] = v
+
+    // reset transport if needed
+    if !hasOption(k, transportOptions) {
+        this.reuseTransport = false
+    }
+
+    // reset jar if needed
+    if !hasOption(k, jarOptions) {
+        this.reuseJar = false
     }
 
     return this
@@ -299,7 +371,10 @@ func (this *HttpClient) WithOptions(m map[int]interface{}) *HttpClient {
 }
 
 func (this *HttpClient) WithHeader(k string, v string) *HttpClient {
-    this.Headers[k] = v
+    if this.oneTimeHeaders == nil {
+        this.oneTimeHeaders = make(map[string]string)
+    }
+    this.oneTimeHeaders[k] = v
 
     return this
 }
@@ -312,28 +387,82 @@ func (this *HttpClient) WithHeaders(m map[string]string) *HttpClient {
     return this
 }
 
-func (this *HttpClient) Do(method string, url string, headers map[string]string, body io.Reader) (*http.Response, error) {
-    if this.client == nil {
-        var err error
-        this.client, err = PrepareClient(this.Options)
+func (this *HttpClient) WithCookie(cookie *http.Cookie) *HttpClient {
+    this.oneTimeCookies = append(this.oneTimeCookies, cookie)
 
+    return this
+}
+
+func (this *HttpClient) Do(method string, url string, headers map[string]string, body io.Reader) (*http.Response, error) {
+    options := mergeOptions(defaultOptions, this.Options, this.oneTimeOptions)
+    headers = mergeHeaders(this.oneTimeHeaders, headers)
+    cookies := this.oneTimeCookies
+
+    var transport http.RoundTripper
+    var jar http.CookieJar
+    var err error
+
+    // transport
+    if this.transport == nil || !this.reuseTransport {
+        transport, err = prepareTransport(options)
         if err != nil {
+            this.reset()
             return nil, err
         }
+
+        if this.reuseTransport {
+            this.transport = transport
+        }
+    } else {
+        transport = this.transport
     }
 
-    req, err := PrepareRequest(method, url, headers, body, this.Options)
+    // jar
+    if this.jar == nil || !this.reuseJar {
+        jar, err = prepareJar(options)
+        if err != nil {
+            this.reset()
+            return nil, err
+        }
+
+        if this.reuseJar {
+            this.jar = jar
+        }
+    } else {
+        jar = this.jar
+    }
+
+    // release lock
+    this.reset()
+
+    redirect, err := prepareRedirect(options)
     if err != nil {
         return nil, err
     }
-    return this.client.Do(req)
+
+    c := &http.Client {
+        Transport: transport,
+        CheckRedirect: redirect,
+        Jar: jar,
+    }
+
+    req, err := prepareRequest(method, url, headers, body, options)
+    if err != nil {
+        return nil, err
+    }
+
+    for _, cookie := range cookies {
+        req.AddCookie(cookie)
+    }
+
+    return c.Do(req)
 }
 
 // The GET request
 func (this *HttpClient) Get(url string, params map[string]string) (*http.Response, error) {
     url = addParams(url, params)
 
-    return this.Do("GET", url, this.Headers, nil)
+    return this.Do("GET", url, nil, nil)
 }
 
 // The POST request
@@ -373,10 +502,7 @@ func (this *HttpClient) PostMultipart(url string, params map[string]string) (*ht
             writer.WriteField(k, v)
         }
     }
-    headers := this.Headers
-    if headers == nil {
-        headers = make(map[string]string)
-    }
+    headers := make(map[string]string)
 
     headers["Content-Type"] = writer.FormDataContentType()
     err := writer.Close()
@@ -456,6 +582,18 @@ func mergeOptions(options ...map[int]interface{}) map[int]interface{} {
     return rst
 }
 
+func mergeHeaders(headers ...map[string]string) map[string]string {
+    rst := make(map[string]string)
+
+    for _, m := range headers {
+        for k, v := range m {
+            rst[k] = v
+        }
+    }
+
+    return rst
+}
+
 func checkParamFile(params map[string]string) bool{
     for k, _ := range params {
         if k[0] == '@' {
@@ -466,8 +604,8 @@ func checkParamFile(params map[string]string) bool{
     return false
 }
 
-func needChangeClient(opt int) bool {
-    for _, v := range noChangeClientOptions {
+func hasOption(opt int, options []int) bool {
+    for _, v := range options {
         if opt != v {
             return true
         }
