@@ -13,6 +13,7 @@ import (
 
 // common response format on httpbin.org
 type ResponseInfo struct {
+    Gzipped bool `json:"gzipped"`
     Method string `json:"method"`
     Origin string `json:"origin"`
     Useragent string `json:"user-agent"` // http://httpbin.org/user-agent
@@ -393,6 +394,35 @@ func TestCookie(t *testing.T) {
 
     if username, ok := info.Cookies["username"]; !ok || username != "octcat" {
         t.Error("cookie update failed")
+    }
+}
+
+func TestGzip(t *testing.T) {
+    c := NewHttpClient(nil)
+    res, err := c.Get("http://httpbin.org/gzip", nil)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    defer res.Body.Close()
+
+    body, err := ioutil.ReadAll(res.Body)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    var info ResponseInfo
+
+    err = json.Unmarshal(body, &info)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    if !info.Gzipped {
+        t.Error("Parse gzip failed")
     }
 }
 
