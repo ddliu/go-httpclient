@@ -44,16 +44,16 @@ var c := httpclient.NewHttpClient(map[int]interface{} {
 })
 ```
 
-The `httpclient.OPT_XXX` keys are global options of this client, they are shared between different HTTP requests.
+The `httpclient.OPT_XXX` options define basic behaviours of this client, they are shared between different HTTP requests.
 
 ### GET/POST
 
 In most cases you just need the `Get` and `Post` method after initializing:
 
 ```
-func (this *HttpClient) Get(url string, params map[string]string) (*http.Response, error)
+func (this *HttpClient) Get(url string, params map[string]string) (*httpclient.Response, error)
 
-func (this *HttpClient) Post(url string, params map[string]string) (*http.Response, error)
+func (this *HttpClient) Post(url string, params map[string]string) (*httpclient.Response, error)
 ```
 
 ```go
@@ -91,6 +91,25 @@ c.
     Get("http://github.com", nil)
 ```
 
+### Response
+
+The `httpclient.Response` is a thin wrap of `http.Response`.
+
+```go
+// traditional
+res, err := c.Get("http://google.com", nil)
+bodyBytes, err := ioutil.ReadAll(res.Body)
+res.Body.Close()
+
+// ToString
+res, err = c.Get("http://google.com", nil)
+bodyString := res.ToString()
+
+// ReadAll
+res, err = c.Get("http://google.com", nil)
+bodyBytes := res.ReadAll()
+```
+
 ### Concurrent Safe
 
 If you've created one client and want to start many requests concurrently, remember to call the `Begin` method when you begin:
@@ -110,6 +129,50 @@ go func() {
         WithHeader("Req-B", "b").
         Get("http://google.com")
 }()
+
+```
+
+### All Together
+
+```go
+package main
+
+import (
+    "github.com/ddliu/go-httpclient"
+    "fmt"
+)
+
+const (
+    USERAGENT = "my awsome httpclient"
+    TIMEOUT = 30
+    AVATAR = "data/avatar.jpg"
+    SERVER = "http://example.com"
+)
+
+func main() {
+    c := httpclient.New(map[int]interface{} {
+        httpclient.OPT_USERAGENT: USERAGENT,
+        httpclient.OPT_COOKIEJAR: true,
+        httpclient.OPT_TIMEOUT: TIMEOUT,
+    })
+
+    res, _ := c.
+        WithHeader("Accept-Language", "en-us").
+        WithOption(httpclient.OPT_TIMEOUT, 10).
+        Get(SERVER)
+
+    fmt.Println(res.ToString())
+
+    res, _ := c.Post(SERVER + "/login", map[string]string {
+        "username": "dong",
+        "password": "123456",
+    })
+
+    res, _ := c.Post(SERVER + "/edit", map[string]string {
+        "email": "a@example.com",
+        "@avatar": AVATAR,
+    })
+}
 
 ```
 
@@ -157,3 +220,7 @@ API improvements
 Cookie support
 
 Concurrent safe
+
+### v0.3.1 (2014-05-20)
+
+Add shortcut for response

@@ -51,9 +51,7 @@ func TestRequest(t *testing.T) {
         t.Error("Status Code not 200")
     }
 
-    defer res.Body.Close()
-
-    body, err := ioutil.ReadAll(res.Body)
+    body, err := res.ReadAll()
 
     if err != nil {
         t.Error(err)
@@ -86,9 +84,7 @@ func TestRequest(t *testing.T) {
         t.Error("Status Code is not 200")
     }
 
-    defer res.Body.Close()
-
-    body, err = ioutil.ReadAll(res.Body)
+    body, err = res.ReadAll()
 
     if err != nil {
         t.Error(err)
@@ -115,6 +111,49 @@ func TestRequest(t *testing.T) {
     }
 }
 
+func TestResponse(t *testing.T) {
+    c := NewHttpClient(nil)
+    res, err := c.
+        Get("http://httpbin.org/user-agent", nil)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    // read with ioutil
+    defer res.Body.Close()
+    body1, err := ioutil.ReadAll(res.Body)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    res, err = c.
+        Get("http://httpbin.org/user-agent", nil)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    body2, err := res.ReadAll()
+
+    res, err = c.
+        Get("http://httpbin.org/user-agent", nil)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    body3, err := res.ToString()
+
+    if err != nil {
+        t.Error(err)
+    }
+    if string(body1) != string(body2) || string(body1) != body3 {
+        t.Error("Error response body")
+    }
+}
+
 func TestHeaders(t *testing.T) {
     // set referer in options
     res, err := NewHttpClient(nil).
@@ -126,11 +165,9 @@ func TestHeaders(t *testing.T) {
         t.Error(err)
     }
 
-    defer res.Body.Close()
-
     var info ResponseInfo
 
-    body, err := ioutil.ReadAll(res.Body)
+    body, err := res.ReadAll()
 
     if err != nil {
         t.Error(err)
@@ -320,9 +357,7 @@ func TestCookie(t *testing.T) {
         t.Error(err)
     }
 
-    defer res.Body.Close()
-
-    body, err := ioutil.ReadAll(res.Body)
+    body, err := res.ReadAll()
 
     if err != nil {
         t.Error(err)
@@ -348,9 +383,7 @@ func TestCookie(t *testing.T) {
         t.Error(err)
     }
 
-    defer res.Body.Close()
-
-    body, err = ioutil.ReadAll(res.Body)
+    body, err = res.ReadAll()
 
     if err != nil {
         t.Error(err)
@@ -378,9 +411,7 @@ func TestCookie(t *testing.T) {
         t.Error(err)
     }
 
-    defer res.Body.Close()
-
-    body, err = ioutil.ReadAll(res.Body)
+    body, err = res.ReadAll()
 
     if err != nil {
         t.Error(err)
@@ -405,9 +436,7 @@ func TestGzip(t *testing.T) {
         t.Error(err)
     }
 
-    defer res.Body.Close()
-
-    body, err := ioutil.ReadAll(res.Body)
+    body, err := res.ReadAll()
 
     if err != nil {
         t.Error(err)
@@ -436,9 +465,7 @@ func _TestCurrentUA(ch chan bool, t *testing.T, c *HttpClient, ua string) {
         t.Error(err)
     }
 
-    defer res.Body.Close()
-
-    body, err := ioutil.ReadAll(res.Body)
+    body, err := res.ReadAll()
 
     if err != nil {
         t.Error(err)

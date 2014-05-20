@@ -10,6 +10,7 @@ import (
 
     "os"
     "io"
+    "io/ioutil"
     "sync"
 
     "path/filepath"
@@ -24,7 +25,7 @@ import (
 
 // https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-    VERSION = "0.3.0"
+    VERSION = "0.3.1"
     USERAGENT = "go-httpclient v" + VERSION
 
     PROXY_HTTP = 0
@@ -94,6 +95,26 @@ var transportOptions = []int {
 // following options will affect cookie jar
 var jarOptions = []int {
     OPT_COOKIEJAR,
+}
+
+// thin wrapper of http.Response
+type Response struct {
+    *http.Response
+}
+
+func (this *Response) ReadAll() ([]byte, error) {
+    defer this.Body.Close()
+    return ioutil.ReadAll(this.Body)
+}
+
+func (this *Response) ToString() (string, error) {
+    defer this.Body.Close()
+    bytes, err := ioutil.ReadAll(this.Body)
+    if err != nil {
+        return "", err
+    }
+
+    return string(bytes), nil
 }
 
 // Get the http.Request
@@ -393,7 +414,7 @@ func (this *HttpClient) WithCookie(cookie *http.Cookie) *HttpClient {
     return this
 }
 
-func (this *HttpClient) Do(method string, url string, headers map[string]string, body io.Reader) (*http.Response, error) {
+func (this *HttpClient) Do(method string, url string, headers map[string]string, body io.Reader) (*Response, error) {
     options := mergeOptions(defaultOptions, this.Options, this.oneTimeOptions)
     headers = mergeHeaders(this.oneTimeHeaders, headers)
     cookies := this.oneTimeCookies
@@ -455,11 +476,13 @@ func (this *HttpClient) Do(method string, url string, headers map[string]string,
         req.AddCookie(cookie)
     }
 
-    return c.Do(req)
+    res, err := c.Do(req)
+
+    return &Response{res}, err
 }
 
 // The GET request
-func (this *HttpClient) Get(url string, params map[string]string) (*http.Response, error) {
+func (this *HttpClient) Get(url string, params map[string]string) (*Response, error) {
     url = addParams(url, params)
 
     return this.Do("GET", url, nil, nil)
@@ -469,7 +492,7 @@ func (this *HttpClient) Get(url string, params map[string]string) (*http.Respons
 // 
 // With multipart set to true, the request will be encoded as "multipart/form-data". 
 // If any of the params key starts with "@", it is considered as a form file (similar to CURL but different).
-func (this *HttpClient) Post(url string, params map[string]string) (*http.Response, error) {
+func (this *HttpClient) Post(url string, params map[string]string) (*Response, error) {
     if checkParamFile(params) {
         return this.PostMultipart(url, params)
     }
@@ -485,7 +508,7 @@ func (this *HttpClient) Post(url string, params map[string]string) (*http.Respon
 }
 
 // Post with the request encoded as "multipart/form-data".
-func (this *HttpClient) PostMultipart(url string, params map[string]string) (*http.Response, error) {
+func (this *HttpClient) PostMultipart(url string, params map[string]string) (*Response, error) {
     body := &bytes.Buffer{}
     // bodyWriter, _ := body.(io.Writer)
     writer := multipart.NewWriter(body)
