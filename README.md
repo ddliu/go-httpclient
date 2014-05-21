@@ -39,7 +39,6 @@ import (
 )
 
 var c := httpclient.NewHttpClient(map[int]interface{} {
-    httpclient.OPT_COOKIEJAR: true,
     httpclient.OPT_USERAGENT: "my awsome httpclient",
 })
 ```
@@ -110,6 +109,28 @@ res, err = c.Get("http://google.com", nil)
 bodyBytes := res.ReadAll()
 ```
 
+### Handle Cookies
+
+```
+url := "http://github.com"
+c.
+    WithCookie(&http.Cookie{
+        Name: "uid",
+        Value: "123",
+    }).
+    Get(url, nil)
+
+for _, cookie := range c.Cookies() {
+    fmt.Println(c.Name, c.Value)
+}
+
+for k, v := range c.CookieValues() {
+    fmt.Println(k, v)
+}
+
+fmt.Println(c.CookieValue("uid"))
+```
+
 ### Concurrent Safe
 
 If you've created one client and want to start many requests concurrently, remember to call the `Begin` method when you begin:
@@ -132,72 +153,37 @@ go func() {
 
 ```
 
-### All Together
+### Full Example
 
-```go
-package main
-
-import (
-    "github.com/ddliu/go-httpclient"
-    "fmt"
-)
-
-const (
-    USERAGENT = "my awsome httpclient"
-    TIMEOUT = 30
-    AVATAR = "data/avatar.jpg"
-    SERVER = "http://example.com"
-)
-
-func main() {
-    c := httpclient.New(map[int]interface{} {
-        httpclient.OPT_USERAGENT: USERAGENT,
-        httpclient.OPT_COOKIEJAR: true,
-        httpclient.OPT_TIMEOUT: TIMEOUT,
-    })
-
-    res, _ := c.
-        WithHeader("Accept-Language", "en-us").
-        WithOption(httpclient.OPT_TIMEOUT, 10).
-        Get(SERVER)
-
-    fmt.Println(res.ToString())
-
-    res, _ := c.Post(SERVER + "/login", map[string]string {
-        "username": "dong",
-        "password": "123456",
-    })
-
-    res, _ := c.Post(SERVER + "/edit", map[string]string {
-        "email": "a@example.com",
-        "@avatar": AVATAR,
-    })
-}
-
-```
+See `examples/main.go`
 
 ## Options
 
 Available options as below:
 
-- `OPT_FOLLOWLOCATION`: TRUE to follow any "Location: " header that the server sends as part of the HTTP header
+- `OPT_FOLLOWLOCATION`: TRUE to follow any "Location: " header that the server sends as part of the HTTP header. Default to `true`.
 - `OPT_CONNECTTIMEOUT`: The number of seconds to wait while trying to connect. Use 0 to wait indefinitely.
 - `OPT_CONNECTTIMEOUT_MS`: The number of milliseconds to wait while trying to connect. Use 0 to wait indefinitely.
 - `OPT_MAXREDIRS`: The maximum amount of HTTP redirections to follow. Use this option alongside `OPT_FOLLOWLOCATION`.
 - `OPT_PROXYTYPE`: Specify the proxy type. Valid options are `PROXY_HTTP`, `PROXY_SOCKS4`, `PROXY_SOCKS5`, `PROXY_SOCKS4A`. Only `PROXY_HTTP` is supported currently. 
 - `OPT_TIMEOUT`: The maximum number of seconds to allow httpclient functions to execute.
 - `OPT_TIMEOUT_MS`: The maximum number of milliseconds to allow httpclient functions to execute.
-- `OPT_COOKIEJAR`: Set to `true` to enable the default cookiejar, or you can set to a `http.CookieJar` instance to use a customized jar.
+- `OPT_COOKIEJAR`: Set to `true` to enable the default cookiejar, or you can set to a `http.CookieJar` instance to use a customized jar. Default to `true`.
 - `OPT_INTERFACE`: TODO
 - `OPT_PROXY`: Proxy host and port(127.0.0.1:1080).
 - `OPT_REFERER`: The `Referer` header of the request.
-- `OPT_USERAGENT`: The `User-Agent` header of the request.
+- `OPT_USERAGENT`: The `User-Agent` header of the request. Default to "go-httpclient v{{VERSION}}".
 - `OPT_REDIRECT_POLICY`: Function to check redirect.
 - `OPT_PROXY_FUNC`: Function to specify proxy.
+
+## API
+
+See [godoc](https://godoc.org/github.com/ddliu/go-httpclient).
 
 ## TODO
 
 - Socks proxy support
+- Return different error types
 
 ## Changelog
 
@@ -224,3 +210,7 @@ Concurrent safe
 ### v0.3.1 (2014-05-20)
 
 Add shortcut for response
+
+### v0.3.2 (2014-05-21)
+
+Fix cookie, add cookie retrieving methods

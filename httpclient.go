@@ -1,3 +1,7 @@
+// Copyright 2014 dong<ddliuhb@gmail.com>.
+// Licensed under the MIT license.
+
+// Powerful and easy to use http client
 package httpclient
 
 import (
@@ -23,9 +27,10 @@ import (
     "mime/multipart"
 )
 
-// https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
+// Constants definations
+// CURL options, see https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-    VERSION = "0.3.1"
+    VERSION = "0.3.2"
     USERAGENT = "go-httpclient v" + VERSION
 
     PROXY_HTTP = 0
@@ -53,6 +58,7 @@ const (
     OPT_PROXY_FUNC = 100001
 )
 
+// String map of options
 var CONST = map[string]int {
     "OPT_AUTOREFERER": 58,
     "OPT_FOLLOWLOCATION": 52,
@@ -72,6 +78,7 @@ var CONST = map[string]int {
     "OPT_PROXY_FUNC": 100001,
 }
 
+// Default options for any clients.
 var defaultOptions = map[int]interface{} {
     OPT_FOLLOWLOCATION: true,
     OPT_MAXREDIRS: 10,
@@ -80,7 +87,8 @@ var defaultOptions = map[int]interface{} {
     OPT_COOKIEJAR: true,
 }
 
-// following options will affect transport
+// These options affect transport, transport may not be reused if you change any
+// of these options during a request.
 var transportOptions = []int {
     OPT_CONNECTTIMEOUT,
     OPT_CONNECTTIMEOUT_MS,
@@ -92,21 +100,24 @@ var transportOptions = []int {
     OPT_PROXY_FUNC,
 }
 
-// following options will affect cookie jar
+// These options affect cookie jar, jar may not be reused if you change any of
+// these options during a request.
 var jarOptions = []int {
     OPT_COOKIEJAR,
 }
 
-// thin wrapper of http.Response
+// Thin wrapper of http.Response(can also be used as http.Response).
 type Response struct {
     *http.Response
 }
 
+// Read response body into a byte slice.
 func (this *Response) ReadAll() ([]byte, error) {
     defer this.Body.Close()
     return ioutil.ReadAll(this.Body)
 }
 
+// Read response body into string.
 func (this *Response) ToString() (string, error) {
     defer this.Body.Close()
     bytes, err := ioutil.ReadAll(this.Body)
@@ -117,8 +128,9 @@ func (this *Response) ToString() (string, error) {
     return string(bytes), nil
 }
 
-// Get the http.Request
-func prepareRequest(method string, url_ string, headers map[string]string, body io.Reader, options map[int]interface{}) (*http.Request, error) {
+// Prepare a request.
+func prepareRequest(method string, url_ string, headers map[string]string, 
+    body io.Reader, options map[int]interface{}) (*http.Request, error) {
     req, err := http.NewRequest(method, url_, body)
 
     if err != nil {
@@ -146,6 +158,9 @@ func prepareRequest(method string, url_ string, headers map[string]string, body 
     return req, nil
 }
 
+// Prepare a transport.
+// 
+// Handles timemout, proxy and maybe other transport related options here.
 func prepareTransport(options map[int]interface{}) (http.RoundTripper, error) {
     transport := &http.Transport{}
 
@@ -255,6 +270,7 @@ func prepareTransport(options map[int]interface{}) (http.RoundTripper, error) {
     return transport, nil
 }
 
+// Prepare a redirect policy.
 func prepareRedirect(options map[int]interface{}) (func(req *http.Request, via []*http.Request) error, error) {
     var redirectPolicy func(req *http.Request, via []*http.Request) error
 
@@ -294,6 +310,7 @@ func prepareRedirect(options map[int]interface{}) (func(req *http.Request, via [
     return redirectPolicy, nil
 }
 
+// Prepare a cookie jar.
 func prepareJar(options map[int]interface{}) (http.CookieJar, error) {
     var jar http.CookieJar
     var err error
@@ -318,6 +335,9 @@ func prepareJar(options map[int]interface{}) (http.CookieJar, error) {
     return jar, nil
 }
 
+// Create an HTTP client.
+// 
+// Specify default options of this client.
 func NewHttpClient(options map[int]interface{}) *HttpClient {
     c := &HttpClient{
         Options: options,
@@ -329,19 +349,43 @@ func NewHttpClient(options map[int]interface{}) *HttpClient {
     return c
 }
 
+// Powerful and easy to use HTTP client.
 type HttpClient struct {
+    // Default options of this client.
     Options map[int]interface{}
+
+    // Default headers of this client (not available yet).
     Headers map[string]string
+
+    // Options of current request.
     oneTimeOptions map[int]interface{}
+
+    // Headers of current request.
     oneTimeHeaders map[string]string
+
+    // Cookies of current request.
     oneTimeCookies []*http.Cookie
+
+    // Global transport of this client, might be shared between different
+    // requests.
     transport http.RoundTripper
+
+    // Global cookie jar of this client, might be shared between different
+    // requests.
     jar http.CookieJar
+
+    // Whether current request should reuse the transport or not.
     reuseTransport bool
+
+    // Whether current request should reuse the cookie jar or not.
     reuseJar bool
+
+    // Make requests of one client concurrent safe.
     lock *sync.Mutex
 }
 
+// Begin marks the begining of a request, it's necessary for concurrent 
+// requests.
 func (this *HttpClient) Begin() *HttpClient {
     if this.lock == nil {
         this.lock = new(sync.Mutex)
@@ -351,6 +395,7 @@ func (this *HttpClient) Begin() *HttpClient {
     return this
 }
 
+// Reset the client state so that other requests can begin.
 func (this *HttpClient) reset() {
     this.oneTimeOptions = nil
     this.oneTimeHeaders = nil
@@ -358,24 +403,26 @@ func (this *HttpClient) reset() {
     this.reuseTransport = true
     this.reuseJar = true
 
+    // nil means the Begin has not been called, asume requests are not 
+    // concurrent.
     if this.lock != nil {
         this.lock.Unlock()
     }
 }
 
-// change the oneTimeOptions
+// Specify an option of the current request.
 func (this *HttpClient) WithOption(k int, v interface{}) *HttpClient {
     if this.oneTimeOptions == nil {
         this.oneTimeOptions = make(map[int]interface{})
     }
     this.oneTimeOptions[k] = v
 
-    // reset transport if needed
+    // Conditions we cann't reuse the transport.
     if !hasOption(k, transportOptions) {
         this.reuseTransport = false
     }
 
-    // reset jar if needed
+    // Conditions we cann't reuse the cookie jar.
     if !hasOption(k, jarOptions) {
         this.reuseJar = false
     }
@@ -383,6 +430,7 @@ func (this *HttpClient) WithOption(k int, v interface{}) *HttpClient {
     return this
 }
 
+// Specify multiple options of the current request.
 func (this *HttpClient) WithOptions(m map[int]interface{}) *HttpClient {
     for k, v := range m {
         this.WithOption(k, v)
@@ -391,6 +439,7 @@ func (this *HttpClient) WithOptions(m map[int]interface{}) *HttpClient {
     return this
 }
 
+// Specify a header of the current request.
 func (this *HttpClient) WithHeader(k string, v string) *HttpClient {
     if this.oneTimeHeaders == nil {
         this.oneTimeHeaders = make(map[string]string)
@@ -400,6 +449,7 @@ func (this *HttpClient) WithHeader(k string, v string) *HttpClient {
     return this
 }
 
+// Specify multiple headers of the current request.
 func (this *HttpClient) WithHeaders(m map[string]string) *HttpClient {
     for k, v := range m {
         this.WithHeader(k, v)
@@ -408,13 +458,18 @@ func (this *HttpClient) WithHeaders(m map[string]string) *HttpClient {
     return this
 }
 
+// Specify a cookie of the current request.
 func (this *HttpClient) WithCookie(cookie *http.Cookie) *HttpClient {
     this.oneTimeCookies = append(this.oneTimeCookies, cookie)
 
     return this
 }
 
-func (this *HttpClient) Do(method string, url string, headers map[string]string, body io.Reader) (*Response, error) {
+// Start a request, and get the response.
+// 
+// Usually we just need the Get and Post method.
+func (this *HttpClient) Do(method string, url string, headers map[string]string, 
+    body io.Reader) (*Response, error) {
     options := mergeOptions(defaultOptions, this.Options, this.oneTimeOptions)
     headers = mergeHeaders(this.oneTimeHeaders, headers)
     cookies := this.oneTimeCookies
@@ -472,8 +527,12 @@ func (this *HttpClient) Do(method string, url string, headers map[string]string,
         return nil, err
     }
 
-    for _, cookie := range cookies {
-        req.AddCookie(cookie)
+    if jar != nil {
+        jar.SetCookies(req.URL, cookies)
+    } else {
+        for _, cookie := range cookies {
+            req.AddCookie(cookie)
+        }
     }
 
     res, err := c.Do(req)
@@ -482,7 +541,8 @@ func (this *HttpClient) Do(method string, url string, headers map[string]string,
 }
 
 // The GET request
-func (this *HttpClient) Get(url string, params map[string]string) (*Response, error) {
+func (this *HttpClient) Get(url string, params map[string]string) (*Response, 
+    error) {
     url = addParams(url, params)
 
     return this.Do("GET", url, nil, nil)
@@ -490,9 +550,14 @@ func (this *HttpClient) Get(url string, params map[string]string) (*Response, er
 
 // The POST request
 // 
-// With multipart set to true, the request will be encoded as "multipart/form-data". 
-// If any of the params key starts with "@", it is considered as a form file (similar to CURL but different).
-func (this *HttpClient) Post(url string, params map[string]string) (*Response, error) {
+// With multipart set to true, the request will be encoded as 
+// "multipart/form-data". 
+// 
+// If any of the params key starts with "@", it is considered as a form file 
+// (similar to CURL but different).
+func (this *HttpClient) Post(url string, params map[string]string) (*Response, 
+    error) {
+    // Post with files should be sent as multipart.
     if checkParamFile(params) {
         return this.PostMultipart(url, params)
     }
@@ -508,9 +573,9 @@ func (this *HttpClient) Post(url string, params map[string]string) (*Response, e
 }
 
 // Post with the request encoded as "multipart/form-data".
-func (this *HttpClient) PostMultipart(url string, params map[string]string) (*Response, error) {
+func (this *HttpClient) PostMultipart(url string, params map[string]string) (
+    *Response, error) {
     body := &bytes.Buffer{}
-    // bodyWriter, _ := body.(io.Writer)
     writer := multipart.NewWriter(body)
 
     // check files
@@ -536,6 +601,39 @@ func (this *HttpClient) PostMultipart(url string, params map[string]string) (*Re
     return this.Do("POST", url, headers, body)
 }
 
+// Get cookies of the client jar.
+func (this *HttpClient) Cookies(url_ string) []*http.Cookie {
+    if (this.jar != nil) {
+        u, _ := url.Parse(url_)
+        return this.jar.Cookies(u)
+    }
+
+    return nil
+}
+
+// Get cookie values(k-v map) of the client jar.
+func (this *HttpClient) CookieValues(url_ string) map[string]string {
+    m := make(map[string]string)
+
+    for _, c := range this.Cookies(url_) {
+        m[c.Name] = c.Value
+    }
+
+    return m
+}
+
+// Get cookie value of a specified cookie name.
+func (this *HttpClient) CookieValue(url_ string, key string) string {
+    for _, c := range this.Cookies(url_) {
+        if c.Name == key {
+            return c.Value
+        }
+    }
+
+    return ""
+}
+
+// Convert string map to url component.
 func paramsToString(params map[string]string) string {
     values := url.Values{}
     for k, v := range(params) {
@@ -545,6 +643,7 @@ func paramsToString(params map[string]string) string {
     return values.Encode()
 }
 
+// Add params to a url string.
 func addParams(url_ string, params map[string]string) string {
     if len(params) == 0 {
         return url_
@@ -563,6 +662,7 @@ func addParams(url_ string, params map[string]string) string {
     return url_
 }
 
+// Add a file to a multipart writer.
 func addFormFile(writer *multipart.Writer, name, path string) error{
     file, err := os.Open(path)
     if err != nil {
@@ -579,7 +679,7 @@ func addFormFile(writer *multipart.Writer, name, path string) error{
     return err
 }
 
-// Convert options with strin keys to desired format
+// Convert options with string keys to desired format.
 func Option(o map[string]interface{}) map[int]interface{} {
     rst := make(map[int]interface{})
     for k, v := range o {
@@ -592,7 +692,7 @@ func Option(o map[string]interface{}) map[int]interface{} {
     return rst
 }
 
-// Merge options(latter ones has higher priority)
+// Merge options(latter ones have higher priority)
 func mergeOptions(options ...map[int]interface{}) map[int]interface{} {
     rst := make(map[int]interface{})
 
@@ -605,6 +705,7 @@ func mergeOptions(options ...map[int]interface{}) map[int]interface{} {
     return rst
 }
 
+// Merge headers(latter ones have higher priority)
 func mergeHeaders(headers ...map[string]string) map[string]string {
     rst := make(map[string]string)
 
@@ -617,6 +718,7 @@ func mergeHeaders(headers ...map[string]string) map[string]string {
     return rst
 }
 
+// Does the params contain a file?
 func checkParamFile(params map[string]string) bool{
     for k, _ := range params {
         if k[0] == '@' {
@@ -627,6 +729,7 @@ func checkParamFile(params map[string]string) bool{
     return false
 }
 
+// Is opt in options?
 func hasOption(opt int, options []int) bool {
     for _, v := range options {
         if opt != v {

@@ -342,9 +342,7 @@ func TestRedirect(t *testing.T) {
 }
 
 func TestCookie(t *testing.T) {
-    c := NewHttpClient(map[int]interface{} {
-        OPT_COOKIEJAR: true,
-    })
+    c := NewHttpClient(nil)
 
     res, err := c.
         WithCookie(&http.Cookie {
@@ -375,6 +373,11 @@ func TestCookie(t *testing.T) {
         t.Error("cookie is not set properly")
     }
 
+    if c.CookieValue("http://httpbin.org/cookies", "username") != "dong" {
+        t.Error("cookie is not set properly")
+    }
+
+
     // get old cookie
     res, err = c.
         Get("http://httpbin.org/cookies", nil)
@@ -396,6 +399,10 @@ func TestCookie(t *testing.T) {
     }
 
     if username, ok := info.Cookies["username"]; !ok || username != "dong" {
+        t.Error("cookie lost")
+    }
+
+    if c.CookieValue("http://httpbin.org/cookies", "username") != "dong" {
         t.Error("cookie lost")
     }
 
@@ -424,6 +431,10 @@ func TestCookie(t *testing.T) {
     }
 
     if username, ok := info.Cookies["username"]; !ok || username != "octcat" {
+        t.Error("cookie update failed")
+    }
+
+    if c.CookieValue("http://httpbin.org/cookies", "username") != "octcat" {
         t.Error("cookie update failed")
     }
 }
