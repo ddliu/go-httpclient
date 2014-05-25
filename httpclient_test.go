@@ -235,7 +235,7 @@ func TestTimeout(t *testing.T) {
         t.Error("OPT_CONNECTTIMEOUT_MS does not work")
     }
 
-    if !strings.Contains(err.Error(), "timeout") {
+    if !IsTimeoutError(err) {
         t.Error("Maybe it's not a timeout error?", err)
     }
 
@@ -267,8 +267,11 @@ func TestTimeout(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
+    c := NewHttpClient(map[int]interface{} {
+        OPT_USERAGENT: "test redirect",
+    })
     // follow locatioin
-    res, err := NewHttpClient(nil).
+    res, err := c.
         WithOptions(map[int]interface{} {
             OPT_FOLLOWLOCATION: true,
             OPT_MAXREDIRS: 10,
@@ -283,8 +286,27 @@ func TestRedirect(t *testing.T) {
         t.Error("Redirect failed")
     }
 
+    // should keep useragent
+    var info ResponseInfo
+
+    body, err := res.ReadAll()
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    err = json.Unmarshal(body, &info)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    if useragent, ok := info.Headers["User-Agent"]; !ok || useragent != "test redirect" {
+        t.Error("Useragent is not passed through")
+    }
+
     // no follow
-    res, err = NewHttpClient(nil).
+    res, err = c.
         WithOption(OPT_FOLLOWLOCATION, false).
         Get("http://httpbin.org/redirect/3", nil)
 
@@ -301,12 +323,16 @@ func TestRedirect(t *testing.T) {
     }
 
     // maxredirs
-    res, err = NewHttpClient(nil).
+    res, err = c.
         WithOption(OPT_MAXREDIRS, 2).
         Get("http://httpbin.org/redirect/3", nil)
 
     if err == nil {
         t.Error("Must not follow through")
+    }
+
+    if !IsRedirectError(err) {
+        t.Error("Not a redirect error", err)
     }
 
     if !strings.Contains(err.Error(), "stopped after 2 redirects") {
@@ -318,7 +344,7 @@ func TestRedirect(t *testing.T) {
     }
 
     // custom redirect policy
-    res, err = NewHttpClient(nil).
+    res, err = c.
         WithOption(OPT_REDIRECT_POLICY, func(req *http.Request, via []*http.Request) error {
             if req.URL.String() == "http://httpbin.org/redirect/1" {
                 return fmt.Errorf("should stop here")

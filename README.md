@@ -153,6 +153,17 @@ go func() {
 
 ```
 
+### Error Checking
+
+You can use `httpclient.IsTimeoutError` to check for timeout error:
+
+```go
+res, err := c.Get("http://google.com", nil)
+if httpclient.IsTimeoutError(err) {
+    // do something
+}
+```
+
 ### Full Example
 
 See `examples/main.go`
@@ -183,7 +194,6 @@ See [godoc](https://godoc.org/github.com/ddliu/go-httpclient).
 ## TODO
 
 - Socks proxy support
-- Return different error types
 
 ## Changelog
 
@@ -214,3 +224,9 @@ Add shortcut for response
 ### v0.3.2 (2014-05-21)
 
 Fix cookie, add cookie retrieving methods
+
+### v0.3.3 (2014-05-25)
+
+Pass through useragent during redirects.
+
+Support error checking.

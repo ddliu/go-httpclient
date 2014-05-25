@@ -12,12 +12,9 @@ import (
 
     "time"
 
-    "os"
     "io"
     "io/ioutil"
     "sync"
-
-    "path/filepath"
 
     "net"
     "net/http"
@@ -30,7 +27,7 @@ import (
 // Constants definations
 // CURL options, see https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-    VERSION = "0.3.2"
+    VERSION = "0.3.3"
     USERAGENT = "go-httpclient v" + VERSION
 
     PROXY_HTTP = 0
@@ -56,6 +53,7 @@ const (
     // Other OPT
     OPT_REDIRECT_POLICY = 100000
     OPT_PROXY_FUNC = 100001
+
 )
 
 // String map of options
@@ -105,6 +103,8 @@ var transportOptions = []int {
 var jarOptions = []int {
     OPT_COOKIEJAR,
 }
+
+
 
 // Thin wrapper of http.Response(can also be used as http.Response).
 type Response struct {
@@ -192,7 +192,8 @@ func prepareTransport(options map[int]interface{}) (http.RoundTripper, error) {
         }
     }
 
-    // fix connect timeout(important, or it might cause a long time wait during connection)
+    // fix connect timeout(important, or it might cause a long time wait during 
+    //connection)
     if timeoutMS > 0 && (connectTimeoutMS > timeoutMS || connectTimeoutMS == 0) {
         connectTimeoutMS = timeoutMS
     }
@@ -296,11 +297,24 @@ func prepareRedirect(options map[int]interface{}) (func(req *http.Request, via [
         redirectPolicy = func(req *http.Request, via []*http.Request) error {
             // no follow
             if !followlocation || maxredirs <= 0 {
-                return fmt.Errorf("redirect not allowed")
+                return &Error {
+                    Code: ERR_REDIRECT_POLICY,
+                    Message: fmt.Sprintf("redirect not allowed"),
+                }
             }
 
             if len(via) >= maxredirs {
-                return fmt.Errorf("stopped after %d redirects", len(via))
+                return &Error {
+                    Code: ERR_REDIRECT_POLICY,
+                    Message: fmt.Sprintf("stopped after %d redirects", len(via)),
+                }
+            }
+
+            last := via[len(via) - 1]
+            // keep necessary headers
+            // TODO: pass all headers or add other headers?
+            if useragent := last.Header.Get("User-Agent"); useragent != "" {
+                req.Header.Set("User-Agent", useragent)
             }
 
             return nil
@@ -631,111 +645,4 @@ func (this *HttpClient) CookieValue(url_ string, key string) string {
     }
 
     return ""
-}
-
-// Convert string map to url component.
-func paramsToString(params map[string]string) string {
-    values := url.Values{}
-    for k, v := range(params) {
-        values.Set(k, v)
-    }
-
-    return values.Encode()
-}
-
-// Add params to a url string.
-func addParams(url_ string, params map[string]string) string {
-    if len(params) == 0 {
-        return url_
-    }
-
-    if !strings.Contains(url_, "?") {
-        url_ += "?"
-    }
-
-    if strings.HasSuffix(url_, "?") || strings.HasSuffix(url_, "&") {
-        url_ += paramsToString(params)
-    } else {
-        url_ += "&" + paramsToString(params)
-    }
-
-    return url_
-}
-
-// Add a file to a multipart writer.
-func addFormFile(writer *multipart.Writer, name, path string) error{
-    file, err := os.Open(path)
-    if err != nil {
-        return err
-    }
-    defer file.Close()
-    part, err := writer.CreateFormFile(name, filepath.Base(path))
-    if err != nil {
-        return err
-    }
-
-    _, err = io.Copy(part, file)
-
-    return err
-}
-
-// Convert options with string keys to desired format.
-func Option(o map[string]interface{}) map[int]interface{} {
-    rst := make(map[int]interface{})
-    for k, v := range o {
-        k := "OPT_" + strings.ToUpper(k)
-        if num, ok := CONST[k]; ok {
-            rst[num] = v
-        }
-    }
-
-    return rst
-}
-
-// Merge options(latter ones have higher priority)
-func mergeOptions(options ...map[int]interface{}) map[int]interface{} {
-    rst := make(map[int]interface{})
-
-    for _, m := range options {
-        for k, v := range m {
-            rst[k] = v
-        }
-    }
-
-    return rst
-}
-
-// Merge headers(latter ones have higher priority)
-func mergeHeaders(headers ...map[string]string) map[string]string {
-    rst := make(map[string]string)
-
-    for _, m := range headers {
-        for k, v := range m {
-            rst[k] = v
-        }
-    }
-
-    return rst
-}
-
-// Does the params contain a file?
-func checkParamFile(params map[string]string) bool{
-    for k, _ := range params {
-        if k[0] == '@' {
-            return true
-        }
-    }
-
-    return false
-}
-
-// Is opt in options?
-func hasOption(opt int, options []int) bool {
-    for _, v := range options {
-        if opt != v {
-            return true
-        }
-    }
-
-    return false
 }
