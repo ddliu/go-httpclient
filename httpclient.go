@@ -472,9 +472,9 @@ func (this *HttpClient) WithHeaders(m map[string]string) *HttpClient {
     return this
 }
 
-// Specify a cookie of the current request.
-func (this *HttpClient) WithCookie(cookie *http.Cookie) *HttpClient {
-    this.oneTimeCookies = append(this.oneTimeCookies, cookie)
+// Specify cookies of the current request.
+func (this *HttpClient) WithCookie(cookies ...*http.Cookie) *HttpClient {
+    this.oneTimeCookies = append(this.oneTimeCookies, cookies...)
 
     return this
 }
