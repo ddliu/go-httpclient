@@ -21,6 +21,8 @@ import (
     "net/url"
     "net/http/cookiejar"
 
+    "compress/gzip"
+
     "mime/multipart"
 )
 
@@ -113,14 +115,25 @@ type Response struct {
 
 // Read response body into a byte slice.
 func (this *Response) ReadAll() ([]byte, error) {
-    defer this.Body.Close()
-    return ioutil.ReadAll(this.Body)
+    var reader io.ReadCloser
+    var err error
+    switch this.Header.Get("Content-Encoding") {
+    case "gzip":
+        reader, err = gzip.NewReader(this.Body)
+        if err != nil {
+            return nil, err
+        }
+    default:
+        reader = this.Body
+    }
+
+    defer reader.Close()
+    return ioutil.ReadAll(reader)
 }
 
 // Read response body into string.
 func (this *Response) ToString() (string, error) {
-    defer this.Body.Close()
-    bytes, err := ioutil.ReadAll(this.Body)
+    bytes, err := this.ReadAll()
     if err != nil {
         return "", err
     }

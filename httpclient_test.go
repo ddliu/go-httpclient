@@ -467,7 +467,9 @@ func TestCookie(t *testing.T) {
 
 func TestGzip(t *testing.T) {
     c := NewHttpClient(nil)
-    res, err := c.Get("http://httpbin.org/gzip", nil)
+    res, err := c.
+        WithHeader("Accept-Encoding", "gzip, deflate").
+        Get("http://httpbin.org/gzip", nil)
 
     if err != nil {
         t.Error(err)
