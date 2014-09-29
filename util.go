@@ -118,3 +118,36 @@ func hasOption(opt int, options []int) bool {
 
     return false
 }
+
+// Map is a mixed structure with options and headers
+type Map map[interface{}]interface{}
+
+// Parse the Map, return options and headers
+func parseMap(m Map) (map[int]interface{}, map[string]string) {
+    var options = make(map[int]interface{})
+    var headers = make(map[string]string)
+
+    if m == nil {
+        return options, headers
+    }
+
+    for k, v := range m {
+        // integer is option
+        if kInt, ok := k.(int); ok {
+            // don't need to validate
+            options[kInt] = v 
+        } else if kString, ok := k.(string); ok {
+            kStringUpper := strings.ToUpper(kString)
+            if kInt, ok := CONST[kStringUpper]; ok {
+                options[kInt] = v
+            } else {
+                // it should be header, but we still need to validate it's type
+                if vString, ok := v.(string); ok {
+                    headers[kString] = vString
+                }
+            }
+        }
+    }
+
+    return options, headers
+}

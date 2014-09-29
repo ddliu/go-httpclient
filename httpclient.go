@@ -29,7 +29,7 @@ import (
 // Constants definations
 // CURL options, see https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-    VERSION = "0.3.3"
+    VERSION = "0.4.0"
     USERAGENT = "go-httpclient v" + VERSION
 
     PROXY_HTTP = 0
@@ -364,11 +364,12 @@ func prepareJar(options map[int]interface{}) (http.CookieJar, error) {
 
 // Create an HTTP client.
 // 
-// Specify default options of this client.
-func NewHttpClient(options map[int]interface{}) *HttpClient {
+// Specify default options and headers of this client.
+func NewHttpClient(defaults Map) *HttpClient {
+    options, headers := parseMap(defaults)
     c := &HttpClient{
         Options: options,
-        Headers: make(map[string]string),
+        Headers: headers,
         reuseTransport: true,
         reuseJar: true,
     }
@@ -381,7 +382,7 @@ type HttpClient struct {
     // Default options of this client.
     Options map[int]interface{}
 
-    // Default headers of this client (not available yet).
+    // Default headers of this client.
     Headers map[string]string
 
     // Options of current request.
@@ -458,8 +459,9 @@ func (this *HttpClient) WithOption(k int, v interface{}) *HttpClient {
 }
 
 // Specify multiple options of the current request.
-func (this *HttpClient) WithOptions(m map[int]interface{}) *HttpClient {
-    for k, v := range m {
+func (this *HttpClient) WithOptions(m Map) *HttpClient {
+    options, _ := parseMap(m)
+    for k, v := range options {
         this.WithOption(k, v)
     }
 
@@ -498,7 +500,7 @@ func (this *HttpClient) WithCookie(cookies ...*http.Cookie) *HttpClient {
 func (this *HttpClient) Do(method string, url string, headers map[string]string, 
     body io.Reader) (*Response, error) {
     options := mergeOptions(defaultOptions, this.Options, this.oneTimeOptions)
-    headers = mergeHeaders(this.oneTimeHeaders, headers)
+    headers = mergeHeaders(this.Headers, this.oneTimeHeaders, headers)
     cookies := this.oneTimeCookies
 
     var transport http.RoundTripper
@@ -589,10 +591,7 @@ func (this *HttpClient) Post(url string, params map[string]string) (*Response,
         return this.PostMultipart(url, params)
     }
 
-    headers := this.Headers
-    if headers == nil {
-        headers = make(map[string]string)
-    }
+    headers := make(map[string]string)
     headers["Content-Type"] = "application/x-www-form-urlencoded"
     body := strings.NewReader(paramsToString(params))
 

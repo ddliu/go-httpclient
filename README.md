@@ -1,23 +1,16 @@
-# go-httpclient
-
-[![Build Status](https://travis-ci.org/ddliu/go-httpclient.png)](https://travis-ci.org/ddliu/go-httpclient)
+# go-httpclient [![Build Status](https://travis-ci.org/ddliu/go-httpclient.png)](https://travis-ci.org/ddliu/go-httpclient)
 
 Advanced HTTP client for golang.
 
 ## Features
 
-- Simple API
+- Chainable API
 - Direct file upload
 - Timeout
 - Proxy(HTTP, <del>SOCKS5, SOCKS4, SOCKS4A</del>)
 - Cookie
+- GZIP
 - Redirect Policy
-
-## Why
-
-There is already a built in http module for golang, and it's possible to achieve any tasks with it. But I found it painful to do some simple tasks. For example, set timeout, set proxy, upload files etc.
-
-I used to be using CURL, and have built a PHP library on top of it. It turned out solving my problems. So I decided to built one for golang.
 
 ## Installation
 
@@ -29,7 +22,7 @@ go get github.com/ddliu/go-httpclient
 
 ### Initialize
 
-Use `NewHttpClient` to create a client.
+Use `NewHttpClient` to create a client with some options and headers.
 
 ```
 package main
@@ -38,12 +31,13 @@ import (
     "github.com/ddliu/go-httpclient"
 )
 
-var c := httpclient.NewHttpClient(map[int]interface{} {
+var c := httpclient.NewHttpClient(http.Map {
     httpclient.OPT_USERAGENT: "my awsome httpclient",
+    "Accept-Language": "en-us",
 })
 ```
 
-The `httpclient.OPT_XXX` options define basic behaviours of this client, they are shared between different HTTP requests.
+The `OPT_XXX` options define basic behaviours of this client, other values are default request headers of this request. They are shared between different HTTP requests.
 
 ### GET/POST
 
@@ -197,17 +191,25 @@ See [godoc](https://godoc.org/github.com/ddliu/go-httpclient).
 
 ## Changelog
 
-### v0.1.0 (2014-02-14)
+### v0.4.0 (2014-09-29)
 
-Initial release
+Fix gzip.
 
-### v0.2.0 (2014-02-17)
+Improve constructor: support both default options and headers. 
 
-Rewrite API, make it simple
+### v0.3.3 (2014-05-25)
 
-### v0.2.1 (2014-05-18)
+Pass through useragent during redirects.
 
-Make `http.Client` reusable
+Support error checking.
+
+### v0.3.2 (2014-05-21)
+
+Fix cookie, add cookie retrieving methods
+
+### v0.3.1 (2014-05-20)
+
+Add shortcut for response
 
 ### v0.3.0 (2014-05-20)
 
@@ -217,16 +219,14 @@ Cookie support
 
 Concurrent safe
 
-### v0.3.1 (2014-05-20)
+### v0.2.1 (2014-05-18)
 
-Add shortcut for response
+Make `http.Client` reusable
 
-### v0.3.2 (2014-05-21)
+### v0.2.0 (2014-02-17)
 
-Fix cookie, add cookie retrieving methods
+Rewrite API, make it simple
 
-### v0.3.3 (2014-05-25)
+### v0.1.0 (2014-02-14)
 
-Pass through useragent during redirects.
-
-Support error checking.
+Initial release

@@ -14,9 +14,10 @@ const (
 )
 
 func main() {
-    c := httpclient.NewHttpClient(map[int]interface{} {
-        httpclient.OPT_USERAGENT: USERAGENT,
-        httpclient.OPT_TIMEOUT: TIMEOUT,
+    c := httpclient.NewHttpClient(httpclient.Map {
+        "opt_useragent": USERAGENT,
+        "opt_timeout": TIMEOUT,
+        "Accept-Encoding": "gzip,deflate,sdch",
     })
 
     res, _ := c.

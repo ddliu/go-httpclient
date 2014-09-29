@@ -267,12 +267,12 @@ func TestTimeout(t *testing.T) {
 }
 
 func TestRedirect(t *testing.T) {
-    c := NewHttpClient(map[int]interface{} {
+    c := NewHttpClient(Map {
         OPT_USERAGENT: "test redirect",
     })
     // follow locatioin
     res, err := c.
-        WithOptions(map[int]interface{} {
+        WithOptions(Map {
             OPT_FOLLOWLOCATION: true,
             OPT_MAXREDIRS: 10,
         }).
