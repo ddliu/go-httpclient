@@ -31,7 +31,7 @@ import (
     "github.com/ddliu/go-httpclient"
 )
 
-var c := httpclient.NewHttpClient(http.Map {
+var c := httpclient.NewHttpClient(httpclient.Map {
     httpclient.OPT_USERAGENT: "my awsome httpclient",
     "Accept-Language": "en-us",
 })
