@@ -115,7 +115,7 @@ c.
     Get(url, nil)
 
 for _, cookie := range c.Cookies() {
-    fmt.Println(c.Name, c.Value)
+    fmt.Println(cookie.Name, cookie.Value)
 }
 
 for k, v := range c.CookieValues() {
