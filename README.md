@@ -24,7 +24,7 @@ go get github.com/ddliu/go-httpclient
 
 Use `NewHttpClient` to create a client with some options and headers.
 
-```
+```go
 package main
 
 import (
@@ -39,11 +39,23 @@ var c := httpclient.NewHttpClient(httpclient.Map {
 
 The `OPT_XXX` options define basic behaviours of this client, other values are default request headers of this request. They are shared between different HTTP requests.
 
+It's also possible to use the client without explicitly create it.
+
+```go
+package main
+
+import (
+    "github.com/ddliu/go-httpclient"
+)
+
+httpclient.Get("http://google.com", nil)
+```
+
 ### GET/POST
 
 In most cases you just need the `Get` and `Post` method after initializing:
 
-```
+```go
 func (this *HttpClient) Get(url string, params map[string]string) (*httpclient.Response, error)
 
 func (this *HttpClient) Post(url string, params map[string]string) (*httpclient.Response, error)
@@ -190,6 +202,10 @@ See [godoc](https://godoc.org/github.com/ddliu/go-httpclient).
 - Socks proxy support
 
 ## Changelog
+
+### v0.4.1 (2015-01-07)
+
+Add default client for convience.
 
 ### v0.4.0 (2014-09-29)
 
