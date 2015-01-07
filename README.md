@@ -7,7 +7,7 @@ Advanced HTTP client for golang.
 - Chainable API
 - Direct file upload
 - Timeout
-- Proxy(HTTP, <del>SOCKS5, SOCKS4, SOCKS4A</del>)
+- HTTP Proxy
 - Cookie
 - GZIP
 - Redirect Policy
@@ -18,11 +18,7 @@ Advanced HTTP client for golang.
 go get github.com/ddliu/go-httpclient
 ```
 
-## Usage
-
-### Initialize
-
-Use `NewHttpClient` to create a client with some options and headers.
+## Quick Start
 
 ```go
 package main
@@ -31,25 +27,37 @@ import (
     "github.com/ddliu/go-httpclient"
 )
 
-var c := httpclient.NewHttpClient(httpclient.Map {
+func main() {
+    httpclient.Defaults(httpclient.Map {
+        httpclient.OPT_USERAGENT: "my awsome httpclient",
+        "Accept-Language": "en-us",
+    })
+
+    res, err := httpclient.Get("http://google.com/search", map[string]string{
+        "q": "news",
+    })
+
+    println(res.StatusCode, err)
+}
+```
+
+## Usage
+
+### Setup
+
+Use `httpclient.Defaults` to setup default behaviors of the HTTP client.
+
+```go
+httpclient.Defaults(httpclient.Map {
     httpclient.OPT_USERAGENT: "my awsome httpclient",
     "Accept-Language": "en-us",
 })
 ```
 
-The `OPT_XXX` options define basic behaviours of this client, other values are default request headers of this request. They are shared between different HTTP requests.
+The `OPT_XXX` options define basic behaviours of this client, other values are 
+default request headers of this request. They are shared between different HTTP 
+requests.
 
-It's also possible to use the client without explicitly create it.
-
-```go
-package main
-
-import (
-    "github.com/ddliu/go-httpclient"
-)
-
-httpclient.Get("http://google.com", nil)
-```
 
 ### GET/POST
 
@@ -62,14 +70,14 @@ func (this *HttpClient) Post(url string, params map[string]string) (*httpclient.
 ```
 
 ```go
-    res, err := c.Get("http://google.com/search", map[string]string{
+    res, err := httpclient.Get("http://google.com/search", map[string]string{
         "q": "news",
     })
 
     fmt.Println(res.StatusCode, err)
 
     // post file
-    res, err := c.Post("http://dropbox.com/upload", map[string]string {
+    res, err := httpclient.Post("http://dropbox.com/upload", map[string]string {
         "@file": "/tmp/hello.pdf",
     })
 
@@ -78,10 +86,11 @@ func (this *HttpClient) Post(url string, params map[string]string) (*httpclient.
 
 ### Customize Request
 
-Before you start a new HTTP request with `Get` or `Post` method, you can specify options, headers or cookies.
+Before you start a new HTTP request with `Get` or `Post` method, you can specify
+temporary options, headers or cookies for current request.
 
 ```go
-c.
+httpclient.
     WithHeader("User-Agent", "Super Robot").
     WithHeader("custom-header", "value").
     WithHeaders(map[string]string {
@@ -102,16 +111,16 @@ The `httpclient.Response` is a thin wrap of `http.Response`.
 
 ```go
 // traditional
-res, err := c.Get("http://google.com", nil)
+res, err := httpclient.Get("http://google.com", nil)
 bodyBytes, err := ioutil.ReadAll(res.Body)
 res.Body.Close()
 
 // ToString
-res, err = c.Get("http://google.com", nil)
+res, err = httpclient.Get("http://google.com", nil)
 bodyString := res.ToString()
 
 // ReadAll
-res, err = c.Get("http://google.com", nil)
+res, err = httpclient.Get("http://google.com", nil)
 bodyBytes := res.ReadAll()
 ```
 
@@ -119,39 +128,38 @@ bodyBytes := res.ReadAll()
 
 ```
 url := "http://github.com"
-c.
+httpclient.
     WithCookie(&http.Cookie{
         Name: "uid",
         Value: "123",
     }).
     Get(url, nil)
 
-for _, cookie := range c.Cookies() {
+for _, cookie := range httpclient.Cookies() {
     fmt.Println(cookie.Name, cookie.Value)
 }
 
-for k, v := range c.CookieValues() {
+for k, v := range httpclient.CookieValues() {
     fmt.Println(k, v)
 }
 
-fmt.Println(c.CookieValue("uid"))
+fmt.Println(httpclient.CookieValue("uid"))
 ```
 
 ### Concurrent Safe
 
-If you've created one client and want to start many requests concurrently, remember to call the `Begin` method when you begin:
+If you want to start many requests concurrently, remember to call the `Begin` 
+method when you begin:
 
 ```go
-c := httpclient.NewHttpClient(nil)
-
 go func() {
-    c.
+    httpclient.
         Begin().
         WithHeader("Req-A", "a").
         Get("http://google.com")
 }()
 go func() {
-    c.
+    httpclient.
         Begin().
         WithHeader("Req-B", "b").
         Get("http://google.com")
@@ -164,7 +172,7 @@ go func() {
 You can use `httpclient.IsTimeoutError` to check for timeout error:
 
 ```go
-res, err := c.Get("http://google.com", nil)
+res, err := httpclient.Get("http://google.com", nil)
 if httpclient.IsTimeoutError(err) {
     // do something
 }
@@ -193,56 +201,36 @@ Available options as below:
 - `OPT_REDIRECT_POLICY`: Function to check redirect.
 - `OPT_PROXY_FUNC`: Function to specify proxy.
 
+## Seperate Clients
+
+By using the `httpclient.Get`, `httpclient.Post` methods etc, you are using a 
+default shared HTTP client.
+
+If you need more than one clients in a single programe. Just create and use them
+seperately.
+
+```go
+c1 := httpclient.NewHttpClient().Defaults(httpclient.Map {
+    httpclient.OPT_USERAGENT: "browser1",
+})
+
+c1.Get("http://google.com/", nil)
+
+c2 := httpclient.NewHttpClient().Defaults(httpclient.Map {
+    httpclient.OPT_USERAGENT: "browser2",
+})
+
+c2.Get("http://google.com/", nil)
+
+```
+
 ## API
 
 See [godoc](https://godoc.org/github.com/ddliu/go-httpclient).
 
 ## TODO
 
+- Support all HTTP methods directly
+- Direct JSON support?
 - Socks proxy support
-
-## Changelog
-
-### v0.4.1 (2015-01-07)
-
-Add default client for convience.
-
-### v0.4.0 (2014-09-29)
-
-Fix gzip.
-
-Improve constructor: support both default options and headers. 
-
-### v0.3.3 (2014-05-25)
-
-Pass through useragent during redirects.
-
-Support error checking.
-
-### v0.3.2 (2014-05-21)
-
-Fix cookie, add cookie retrieving methods
-
-### v0.3.1 (2014-05-20)
-
-Add shortcut for response
-
-### v0.3.0 (2014-05-20)
-
-API improvements
-
-Cookie support
-
-Concurrent safe
-
-### v0.2.1 (2014-05-18)
-
-Make `http.Client` reusable
-
-### v0.2.0 (2014-02-17)
-
-Rewrite API, make it simple
-
-### v0.1.0 (2014-02-14)
-
-Initial release
+- Improve API design

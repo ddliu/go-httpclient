@@ -17,13 +17,13 @@ const (
 )
 
 func main() {
-    c := httpclient.NewHttpClient(httpclient.Map {
+    httpclient.Defaults(httpclient.Map {
         "opt_useragent": USERAGENT,
         "opt_timeout": TIMEOUT,
         "Accept-Encoding": "gzip,deflate,sdch",
     })
 
-    res, _ := c.
+    res, _ := httpclient.
         WithHeader("Accept-Language", "en-us").
         WithCookie(&http.Cookie{
         	Name: "name",
@@ -33,7 +33,7 @@ func main() {
         Get(SERVER, nil)
 
     fmt.Println("Cookies:")
-    for k, v := range c.CookieValues(SERVER) {
+    for k, v := range httpclient.CookieValues(SERVER) {
     	fmt.Println(k, ":", v)
     }
 

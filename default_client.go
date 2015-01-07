@@ -12,10 +12,9 @@ import (
 // The default client for convenience
 var defaultClient *HttpClient
 
+var Defaults func(Map) *HttpClient
 var Begin func() *HttpClient
-
 var Do func(string, string, map[string]string, io.Reader)(*Response, error)
-
 var Get func(string, map[string]string)(*Response, error)
 var Post func(string, map[string]string)(*Response, error)
 var PostMultipart func(string, map[string]string)(*Response, error)
@@ -29,12 +28,18 @@ var CookieValues func(string)(map[string]string)
 var CookieValue func(string, string)(string)
 
 func init() {
-    defaultClient = NewHttpClient(nil)
+    defaultClient = NewHttpClient()
+    Defaults = defaultClient.Defaults
     Begin = defaultClient.Begin
     Do = defaultClient.Do
     Get = defaultClient.Get
     Post = defaultClient.Post
     PostMultipart = defaultClient.PostMultipart
+    WithOption = defaultClient.WithOption
+    WithOptions = defaultClient.WithOptions
+    WithHeader = defaultClient.WithHeader
+    WithHeaders = defaultClient.WithHeaders
+    WithCookie = defaultClient.WithCookie
     Cookies = defaultClient.Cookies
     CookieValues = defaultClient.CookieValues
     CookieValue = defaultClient.CookieValue

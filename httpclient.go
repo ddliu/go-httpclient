@@ -29,7 +29,7 @@ import (
 // Constants definations
 // CURL options, see https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-    VERSION = "0.4.1"
+    VERSION = "0.5.0"
     USERAGENT = "go-httpclient v" + VERSION
 
     PROXY_HTTP = 0
@@ -363,13 +363,8 @@ func prepareJar(options map[int]interface{}) (http.CookieJar, error) {
 }
 
 // Create an HTTP client.
-// 
-// Specify default options and headers of this client.
-func NewHttpClient(defaults Map) *HttpClient {
-    options, headers := parseMap(defaults)
+func NewHttpClient() *HttpClient {
     c := &HttpClient{
-        Options: options,
-        Headers: headers,
         reuseTransport: true,
         reuseJar: true,
     }
@@ -412,6 +407,31 @@ type HttpClient struct {
     lock *sync.Mutex
 }
 
+// Set default options and headers.
+func (this *HttpClient) Defaults(defaults Map) *HttpClient {
+    options, headers := parseMap(defaults)
+
+    // merge options
+    if this.Options == nil {
+        this.Options = options
+    } else {
+        for k, v := range options {
+            this.Options[k] = v
+        }
+    }
+
+    // merge headers
+    if this.Headers == nil {
+        this.Headers = headers
+    } else {
+        for k, v := range headers {
+            this.Headers[k] = v
+        }
+    }
+
+    return this
+}
+
 // Begin marks the begining of a request, it's necessary for concurrent 
 // requests.
 func (this *HttpClient) Begin() *HttpClient {
@@ -438,7 +458,7 @@ func (this *HttpClient) reset() {
     }
 }
 
-// Specify an option of the current request.
+// Temporarily specify an option of the current request.
 func (this *HttpClient) WithOption(k int, v interface{}) *HttpClient {
     if this.oneTimeOptions == nil {
         this.oneTimeOptions = make(map[int]interface{})
@@ -458,7 +478,7 @@ func (this *HttpClient) WithOption(k int, v interface{}) *HttpClient {
     return this
 }
 
-// Specify multiple options of the current request.
+// Temporarily specify multiple options of the current request.
 func (this *HttpClient) WithOptions(m Map) *HttpClient {
     options, _ := parseMap(m)
     for k, v := range options {
@@ -468,7 +488,7 @@ func (this *HttpClient) WithOptions(m Map) *HttpClient {
     return this
 }
 
-// Specify a header of the current request.
+// Temporarily specify a header of the current request.
 func (this *HttpClient) WithHeader(k string, v string) *HttpClient {
     if this.oneTimeHeaders == nil {
         this.oneTimeHeaders = make(map[string]string)
@@ -478,7 +498,7 @@ func (this *HttpClient) WithHeader(k string, v string) *HttpClient {
     return this
 }
 
-// Specify multiple headers of the current request.
+// Temporarily specify multiple headers of the current request.
 func (this *HttpClient) WithHeaders(m map[string]string) *HttpClient {
     for k, v := range m {
         this.WithHeader(k, v)
