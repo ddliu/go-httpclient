@@ -1,5 +1,7 @@
-// Test httpclient with httpbin(http://httpbin.org)
+// Copyright 2014-2015 Liu Dong <ddliuhb@gmail.com>.
+// Licensed under the MIT license.
 
+// Test httpclient with httpbin(http://httpbin.org)
 package httpclient
 
 import (
