@@ -310,7 +310,7 @@ func TestRedirect(t *testing.T) {
     // no follow
     res, err = c.
         WithOption(OPT_FOLLOWLOCATION, false).
-        Get("http://httpbin.org/redirect/3", nil)
+        Get("http://httpbin.org/relative-redirect/3", nil)
 
     if err == nil {
         t.Error("Must not follow location")
@@ -320,14 +320,14 @@ func TestRedirect(t *testing.T) {
         t.Error(err)
     }
 
-    if res.StatusCode != 302 || res.Header.Get("Location") != "/redirect/2" {
+    if res.StatusCode != 302 || res.Header.Get("Location") != "/relative-redirect/2" {
         t.Error("Redirect failed: ", res.StatusCode, res.Header.Get("Location"))
     }
 
     // maxredirs
     res, err = c.
         WithOption(OPT_MAXREDIRS, 2).
-        Get("http://httpbin.org/redirect/3", nil)
+        Get("http://httpbin.org/relative-redirect/3", nil)
 
     if err == nil {
         t.Error("Must not follow through")
@@ -341,20 +341,20 @@ func TestRedirect(t *testing.T) {
         t.Error(err)
     }
 
-    if res.StatusCode != 302 || res.Header.Get("Location") != "/redirect/1" {
+    if res.StatusCode != 302 || res.Header.Get("Location") != "/relative-redirect/1" {
         t.Error("OPT_MAXREDIRS does not work properly")
     }
 
     // custom redirect policy
     res, err = c.
         WithOption(OPT_REDIRECT_POLICY, func(req *http.Request, via []*http.Request) error {
-            if req.URL.String() == "http://httpbin.org/redirect/1" {
+            if req.URL.String() == "http://httpbin.org/relative-redirect/1" {
                 return fmt.Errorf("should stop here")
             }
 
             return nil
         }).
-        Get("http://httpbin.org/redirect/3", nil)
+        Get("http://httpbin.org/relative-redirect/3", nil)
 
     if err == nil {
         t.Error("Must not follow through")
@@ -364,7 +364,7 @@ func TestRedirect(t *testing.T) {
         t.Error(err)
     }
 
-    if res.StatusCode != 302 || res.Header.Get("Location") != "/redirect/1" {
+    if res.StatusCode != 302 || res.Header.Get("Location") != "/relative-redirect/1" {
         t.Error("OPT_REDIRECT_POLICY does not work properly")
     }
 }
