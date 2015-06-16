@@ -539,3 +539,36 @@ func TestConcurrent(t *testing.T) {
         <- ch
     }
 }
+
+func TestIssue10(t *testing.T) {
+    var testString = "gpThzrynEC1MdenWgAILwvL2CYuNGO9RwtbH1NZJ1GE31ywFOCY%2BLCctUl86jBi8TccpdPI5ppZ%2Bgss%2BNjqGHg=="
+    c := NewHttpClient()
+    res, err := c.Post("http://httpbin.org/post", map[string]string {
+        "a": "a",
+        "b": "b",
+        "c": testString,
+        "d": "d",
+    })
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    body, err := res.ReadAll()
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    var info ResponseInfo
+
+    err = json.Unmarshal(body, &info)
+
+    if err != nil {
+        t.Error(err)
+    }
+
+    if info.Form["c"] != testString {
+        t.Error("error")
+    }
+}
