@@ -613,7 +613,7 @@ func (this *HttpClient) Post(url string, params map[string]string) (*Response,
 
     headers := make(map[string]string)
     headers["Content-Type"] = "application/x-www-form-urlencoded"
-    body := strings.NewReader(paramsToString(params))
+    body := strings.NewReader(bodyParamsToString(params))
 
     return this.Do("POST", url, headers, body)
 }

@@ -10,6 +10,8 @@ import (
     "net/url"
     "mime/multipart"
     "strings"
+    "bytes"
+    "sort"
 )
 
 // Convert string map to url component.
@@ -20,6 +22,42 @@ func paramsToString(params map[string]string) string {
     }
 
     return values.Encode()
+}
+
+// Convert string map to body component.
+func bodyParamsToString(params map[string]string) string {
+    values := url.Values{}
+    for k, v := range(params) {
+        values.Set(k, v)
+    }
+
+    return bodyEncode(values)
+}
+
+// Encode encodes the values into ``Body encoded'' form
+// ("bar=baz&foo=quux") sorted by key.
+func bodyEncode(v url.Values) string {
+    if v == nil {
+        return ""
+    }
+    var buf bytes.Buffer
+    keys := make([]string, 0, len(v))
+    for k := range v {
+        keys = append(keys, k)
+    }
+    sort.Strings(keys)
+    for _, k := range keys {
+        vs := v[k]
+        prefix := k + "="  //QueryEscape(k)
+        for _, v := range vs {
+            if buf.Len() > 0 {
+                buf.WriteByte('&')
+            }
+            buf.WriteString(prefix)
+            buf.WriteString(v) //QueryEscape(v)
+        }
+    }
+    return buf.String()
 }
 
 // Add params to a url string.
