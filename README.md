@@ -1,4 +1,8 @@
-# go-httpclient [![Build Status](https://travis-ci.org/ddliu/go-httpclient.png)](https://travis-ci.org/ddliu/go-httpclient)
+# go-httpclient 
+
+[![Travis](https://img.shields.io/travis/ddliu/go-httpclient.svg?style=flat-square)](https://travis-ci.org/ddliu/go-httpclient)
+[![godoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/ddliu/go-httpclient)
+[![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
 
 Advanced HTTP client for golang.
 
@@ -223,10 +227,6 @@ c2 := httpclient.NewHttpClient().Defaults(httpclient.Map {
 c2.Get("http://google.com/", nil)
 
 ```
-
-## API
-
-See [godoc](https://godoc.org/github.com/ddliu/go-httpclient).
 
 ## TODO
 
