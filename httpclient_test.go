@@ -156,6 +156,23 @@ func TestResponse(t *testing.T) {
     }
 }
 
+func TestHead(t *testing.T) {
+    c := NewHttpClient()
+    res , err := c.Head("http://httpbin.org/get", nil)
+    if err != nil {
+        t.Error(err)
+    }
+
+    if res.StatusCode != 200 {
+        t.Error("Status code is not 200")
+    }
+
+    if body, err := res.ToString(); err != nil || body != "" {
+        t.Error("HEAD should not get body")
+    }
+
+}
+
 func TestHeaders(t *testing.T) {
     // set referer in options
     res, err := NewHttpClient().
