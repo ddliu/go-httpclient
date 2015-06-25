@@ -589,6 +589,14 @@ func (this *HttpClient) Do(method string, url string, headers map[string]string,
     return &Response{res}, err
 }
 
+// The HEAD request
+func (this *HttpClient) Head(url string, params map[string]string) (*Response,
+    error) {
+    url = addParams(url, params)
+
+    return this.Do("HEAD", url, nil, nil)
+}
+
 // The GET request
 func (this *HttpClient) Get(url string, params map[string]string) (*Response, 
     error) {
