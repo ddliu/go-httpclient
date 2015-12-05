@@ -605,6 +605,15 @@ func (this *HttpClient) Get(url string, params map[string]string) (*Response,
     return this.Do("GET", url, nil, nil)
 }
 
+
+// The DELETE request
+func (this *HttpClient) Delete(url string, params map[string]string) (*Response, 
+    error) {
+    url = addParams(url, params)
+
+    return this.Do("DELETE", url, nil, nil)
+}
+
 // The POST request
 // 
 // With multipart set to true, the request will be encoded as 
