@@ -588,3 +588,10 @@ func TestIssue10(t *testing.T) {
 		t.Error("error")
 	}
 }
+
+func TestOptDebug(t *testing.T) {
+	c := NewHttpClient()
+	c.
+		WithOption(OPT_DEBUG, true).
+		Get("http://httpbin.org/get", nil)
+}
