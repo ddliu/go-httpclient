@@ -1,5 +1,9 @@
 ## Changelog
 
+### v0.5.1 (2015-12-31)
+
+Add `OPT_DEBUG` option.
+
 ### v0.5.0 (2015-01-07)
 
 Remove constructor params, add `Defaults` method to set default options.
