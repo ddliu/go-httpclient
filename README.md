@@ -204,6 +204,7 @@ Available options as below:
 - `OPT_USERAGENT`: The `User-Agent` header of the request. Default to "go-httpclient v{{VERSION}}".
 - `OPT_REDIRECT_POLICY`: Function to check redirect.
 - `OPT_PROXY_FUNC`: Function to specify proxy.
+- `OPT_DEBUG`: Print request info.
 
 ## Seperate Clients
 
