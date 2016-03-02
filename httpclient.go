@@ -643,6 +643,15 @@ func (this *HttpClient) Post(url string, params map[string]string) (*Response,
 	return this.Do("POST", url, headers, body)
 }
 
+func (this *HttpClient) PostRaw(url string, rawbody string) (*Response,
+	error) {
+	headers := make(map[string]string)
+	headers["Content-Type"] = "application/x-www-form-urlencoded"
+	body := strings.NewReader(rawbody)
+
+	return this.Do("POST", url, headers, body)
+}
+
 // Post with the request encoded as "multipart/form-data".
 func (this *HttpClient) PostMultipart(url string, params map[string]string) (
 	*Response, error) {
