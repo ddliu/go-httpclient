@@ -25,6 +25,8 @@ import (
 	"compress/gzip"
 
 	"mime/multipart"
+
+	"crypto/tls"
 )
 
 // Constants definations
@@ -176,7 +178,10 @@ func prepareRequest(method string, url_ string, headers map[string]string,
 //
 // Handles timemout, proxy and maybe other transport related options here.
 func prepareTransport(options map[int]interface{}) (http.RoundTripper, error) {
-	transport := &http.Transport{}
+	transport := &http.Transport{
+		// Warning: This turns off SSL strict certificate validation.
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 
 	connectTimeoutMS := 0
 
