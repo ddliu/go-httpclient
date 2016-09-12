@@ -467,12 +467,12 @@ func (this *HttpClient) WithOption(k int, v interface{}) *HttpClient {
 	this.oneTimeOptions[k] = v
 
 	// Conditions we cann't reuse the transport.
-	if !hasOption(k, transportOptions) {
+	if hasOption(k, transportOptions) {
 		this.reuseTransport = false
 	}
 
 	// Conditions we cann't reuse the cookie jar.
-	if !hasOption(k, jarOptions) {
+	if hasOption(k, jarOptions) {
 		this.reuseJar = false
 	}
 
