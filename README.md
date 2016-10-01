@@ -121,7 +121,7 @@ res.Body.Close()
 
 // ToString
 res, err = httpclient.Get("http://google.com", nil)
-bodyString := res.ToString()
+bodyString,err := res.ToString()
 
 // ReadAll
 res, err = httpclient.Get("http://google.com", nil)
