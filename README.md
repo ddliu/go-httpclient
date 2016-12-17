@@ -130,7 +130,7 @@ bodyBytes := res.ReadAll()
 
 ### Handle Cookies
 
-```
+```go
 url := "http://github.com"
 httpclient.
     WithCookie(&http.Cookie{
@@ -211,7 +211,7 @@ Available options as below:
 By using the `httpclient.Get`, `httpclient.Post` methods etc, you are using a 
 default shared HTTP client.
 
-If you need more than one clients in a single programe. Just create and use them
+If you need more than one client in a single programme. Just create and use them
 seperately.
 
 ```go
