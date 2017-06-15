@@ -29,7 +29,7 @@ import (
 
 func main() {
     httpclient.Defaults(httpclient.Map {
-        httpclient.OPT_USERAGENT: "my awsome httpclient",
+        httpclient.OPT_USERAGENT: "my awesome httpclient",
         "Accept-Language": "en-us",
     })
 
@@ -49,7 +49,7 @@ Use `httpclient.Defaults` to setup default behaviors of the HTTP client.
 
 ```go
 httpclient.Defaults(httpclient.Map {
-    httpclient.OPT_USERAGENT: "my awsome httpclient",
+    httpclient.OPT_USERAGENT: "my awesome httpclient",
     "Accept-Language": "en-us",
 })
 ```
