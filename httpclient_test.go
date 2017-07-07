@@ -41,9 +41,9 @@ func TestRequest(t *testing.T) {
 	// post
 	res, err = NewHttpClient().
 		Post("http://httpbin.org/post", map[string]string{
-		"username": "dong",
-		"password": "******",
-	})
+			"username": "dong",
+			"password": "******",
+		})
 
 	if err != nil {
 		t.Error("post failed", err)
@@ -74,9 +74,9 @@ func TestRequest(t *testing.T) {
 	// post, multipart
 	res, err = NewHttpClient().
 		Post("http://httpbin.org/post", map[string]string{
-		"message": "Hello world!",
-		"@image":  "README.md",
-	})
+			"message": "Hello world!",
+			"@image":  "README.md",
+		})
 
 	if err != nil {
 		t.Error(err)
@@ -231,8 +231,8 @@ func _TestProxy(t *testing.T) {
 
 	res, err = NewHttpClient().
 		WithOption(OPT_PROXY_FUNC, func(*http.Request) (int, string, error) {
-		return PROXY_HTTP, proxy, nil
-	}).
+			return PROXY_HTTP, proxy, nil
+		}).
 		Get("http://httpbin.org/get", nil)
 
 	if err != nil {
@@ -292,9 +292,9 @@ func TestRedirect(t *testing.T) {
 	// follow locatioin
 	res, err := c.
 		WithOptions(Map{
-		OPT_FOLLOWLOCATION: true,
-		OPT_MAXREDIRS:      10,
-	}).
+			OPT_FOLLOWLOCATION: true,
+			OPT_MAXREDIRS:      10,
+		}).
 		Get("http://httpbin.org/redirect/3", nil)
 
 	if err != nil {
@@ -365,12 +365,12 @@ func TestRedirect(t *testing.T) {
 	// custom redirect policy
 	res, err = c.
 		WithOption(OPT_REDIRECT_POLICY, func(req *http.Request, via []*http.Request) error {
-		if req.URL.String() == "http://httpbin.org/relative-redirect/1" {
-			return fmt.Errorf("should stop here")
-		}
+			if req.URL.String() == "http://httpbin.org/relative-redirect/1" {
+				return fmt.Errorf("should stop here")
+			}
 
-		return nil
-	}).
+			return nil
+		}).
 		Get("http://httpbin.org/relative-redirect/3", nil)
 
 	if err == nil {
@@ -391,9 +391,9 @@ func TestCookie(t *testing.T) {
 
 	res, err := c.
 		WithCookie(&http.Cookie{
-		Name:  "username",
-		Value: "dong",
-	}).
+			Name:  "username",
+			Value: "dong",
+		}).
 		Get("http://httpbin.org/cookies", nil)
 
 	if err != nil {
@@ -453,9 +453,9 @@ func TestCookie(t *testing.T) {
 	// update cookie
 	res, err = c.
 		WithCookie(&http.Cookie{
-		Name:  "username",
-		Value: "octcat",
-	}).
+			Name:  "username",
+			Value: "octcat",
+		}).
 		Get("http://httpbin.org/cookies", nil)
 
 	if err != nil {
@@ -594,4 +594,25 @@ func TestOptDebug(t *testing.T) {
 	c.
 		WithOption(OPT_DEBUG, true).
 		Get("http://httpbin.org/get", nil)
+}
+
+func TestUnsafeTLS(t *testing.T) {
+	unsafeUrl := "https://expired.badssl.com/"
+	c := NewHttpClient()
+	_, err := c.
+		Get(unsafeUrl, nil)
+	if err == nil {
+		t.Error("Unexcepted unsafe url:" + unsafeUrl)
+	}
+
+	res, err := c.
+		WithOption(OPT_UNSAFE_TLS, true).
+		Get(unsafeUrl, nil)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.StatusCode != 200 {
+		t.Error("OPT_UNSAFE_TLS error")
+	}
 }
