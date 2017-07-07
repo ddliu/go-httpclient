@@ -32,7 +32,7 @@ import (
 // Constants definations
 // CURL options, see https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-	VERSION   = "0.5.1"
+	VERSION   = "0.5.2"
 	USERAGENT = "go-httpclient v" + VERSION
 
 	PROXY_HTTP    = 0
@@ -292,7 +292,7 @@ func prepareTransport(options map[int]interface{}) (http.RoundTripper, error) {
 		var unsafe_tls, _ = unsafe_tls_.(bool)
 		var tls_config = transport.TLSClientConfig
 		if tls_config == nil {
-			tls_config = & tls.Config{}
+			tls_config = &tls.Config{}
 			transport.TLSClientConfig = tls_config
 		}
 		tls_config.InsecureSkipVerify = unsafe_tls
