@@ -22,6 +22,8 @@ import (
 	"net/http/httputil"
 	"net/url"
 
+	"crypto/tls"
+
 	"compress/gzip"
 
 	"mime/multipart"
@@ -57,6 +59,7 @@ const (
 	OPT_REDIRECT_POLICY = 100000
 	OPT_PROXY_FUNC      = 100001
 	OPT_DEBUG           = 100002
+	OPT_UNSAFE_TLS      = 100004
 )
 
 // String map of options
@@ -78,6 +81,7 @@ var CONST = map[string]int{
 	"OPT_REDIRECT_POLICY": 100000,
 	"OPT_PROXY_FUNC":      100001,
 	"OPT_DEBUG":           100002,
+	"OPT_UNSAFE_TLS":      100004,
 }
 
 // Default options for any clients.
@@ -101,6 +105,7 @@ var transportOptions = []int{
 	OPT_INTERFACE,
 	OPT_PROXY,
 	OPT_PROXY_FUNC,
+	OPT_UNSAFE_TLS,
 }
 
 // These options affect cookie jar, jar may not be reused if you change any of
@@ -280,6 +285,17 @@ func prepareTransport(options map[int]interface{}) (http.RoundTripper, error) {
 			}
 			transport.Proxy = http.ProxyURL(proxyUrl)
 		}
+	}
+
+	// TLS
+	if unsafe_tls_, found := options[OPT_UNSAFE_TLS]; found {
+		var unsafe_tls, _ = unsafe_tls_.(bool)
+		var tls_config = transport.TLSClientConfig
+		if tls_config == nil {
+			tls_config = & tls.Config{}
+			transport.TLSClientConfig = tls_config
+		}
+		tls_config.InsecureSkipVerify = unsafe_tls
 	}
 
 	return transport, nil
