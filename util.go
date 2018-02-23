@@ -111,7 +111,7 @@ func checkParamFile(params map[string]string) bool {
 // Is opt in options?
 func hasOption(opt int, options []int) bool {
 	for _, v := range options {
-		if opt != v {
+		if opt == v {
 			return true
 		}
 	}
