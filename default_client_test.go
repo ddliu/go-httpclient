@@ -8,7 +8,7 @@ import (
 )
 
 func TestDefaultClient(t *testing.T) {
-	res, err := Get("http://httpbin.org/get", nil)
+	res, err := Get("http://httpbin.org/get")
 
 	if err != nil {
 		t.Error("get failed", err)

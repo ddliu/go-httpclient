@@ -63,29 +63,43 @@ default request headers of this request. They are shared between different HTTP
 requests.
 
 
-### GET/POST
-
-In most cases you just need the `Get` and `Post` method after initializing:
+### Sending Request
 
 ```go
-func (this *HttpClient) Get(url string, params ...map[string]string) (*httpclient.Response, error)
+// get
+httpclient.Get("http://httpbin.org/get", map[string]string{
+    "q": "news",
+})
 
-func (this *HttpClient) Post(url string, params map[string]string) (*httpclient.Response, error)
-```
+// get with url.Values
+httpclient.Get("http://httpbin.org/get", url.Values{
+    "q": []string{"news", "today"}
+})
 
-```go
-    res, err := httpclient.Get("http://google.com/search", map[string]string{
-        "q": "news",
-    })
+// post
+httpclient.Post("http://httpbin.org/post", map[string]string {
+    "name": "value"
+})
 
-    fmt.Println(res.StatusCode, err)
+// post file(multipart)
+httpclient.Post("http://httpbin.org/multipart", map[string]string {
+    "@file": "/tmp/hello.pdf",
+})
 
-    // post file
-    res, err := httpclient.Post("http://dropbox.com/upload", map[string]string {
-        "@file": "/tmp/hello.pdf",
-    })
+// put json
+httpclient.PutJson("http://httpbin.org/put", 
+`{
+    "name": "hello",
+}`)
 
-    fmt.Println(res, err)
+// delete
+httpclient.Delete("http://httpbin.org/delete")
+
+// options
+httpclient.Options("http://httpbin.org")
+
+// head
+httpclient.Head("http://httpbin.org/get")
 ```
 
 ### Customize Request
@@ -106,7 +120,7 @@ httpclient.
         Name: "uid",
         Value: "123",
     }).
-    Get("http://github.com", nil)
+    Get("http://github.com")
 ```
 
 ### Response
@@ -115,16 +129,16 @@ The `httpclient.Response` is a thin wrap of `http.Response`.
 
 ```go
 // traditional
-res, err := httpclient.Get("http://google.com", nil)
+res, err := httpclient.Get("http://google.com")
 bodyBytes, err := ioutil.ReadAll(res.Body)
 res.Body.Close()
 
 // ToString
-res, err = httpclient.Get("http://google.com", nil)
+res, err = httpclient.Get("http://google.com")
 bodyString,err := res.ToString()
 
 // ReadAll
-res, err = httpclient.Get("http://google.com", nil)
+res, err = httpclient.Get("http://google.com")
 bodyBytes := res.ReadAll()
 ```
 
@@ -137,7 +151,7 @@ httpclient.
         Name: "uid",
         Value: "123",
     }).
-    Get(url, nil)
+    Get(url)
 
 for _, cookie := range httpclient.Cookies() {
     fmt.Println(cookie.Name, cookie.Value)
@@ -176,7 +190,7 @@ go func() {
 You can use `httpclient.IsTimeoutError` to check for timeout error:
 
 ```go
-res, err := httpclient.Get("http://google.com", nil)
+res, err := httpclient.Get("http://google.com")
 if httpclient.IsTimeoutError(err) {
     // do something
 }

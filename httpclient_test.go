@@ -28,7 +28,7 @@ type ResponseInfo struct {
 func TestRequest(t *testing.T) {
 	// get
 	res, err := NewHttpClient().
-		Get("http://httpbin.org/get", nil)
+		Get("http://httpbin.org/get")
 
 	if err != nil {
 		t.Error("get failed", err)
@@ -116,7 +116,7 @@ func TestRequest(t *testing.T) {
 func TestResponse(t *testing.T) {
 	c := NewHttpClient()
 	res, err := c.
-		Get("http://httpbin.org/user-agent", nil)
+		Get("http://httpbin.org/user-agent")
 
 	if err != nil {
 		t.Error(err)
@@ -131,7 +131,7 @@ func TestResponse(t *testing.T) {
 	}
 
 	res, err = c.
-		Get("http://httpbin.org/user-agent", nil)
+		Get("http://httpbin.org/user-agent")
 
 	if err != nil {
 		t.Error(err)
@@ -140,7 +140,7 @@ func TestResponse(t *testing.T) {
 	body2, err := res.ReadAll()
 
 	res, err = c.
-		Get("http://httpbin.org/user-agent", nil)
+		Get("http://httpbin.org/user-agent")
 
 	if err != nil {
 		t.Error(err)
@@ -254,7 +254,7 @@ func TestHeaders(t *testing.T) {
 	res, err := NewHttpClient().
 		WithHeader("header1", "value1").
 		WithOption(OPT_REFERER, "http://google.com").
-		Get("http://httpbin.org/get", nil)
+		Get("http://httpbin.org/get")
 
 	if err != nil {
 		t.Error(err)
@@ -295,7 +295,7 @@ func _TestProxy(t *testing.T) {
 
 	res, err := NewHttpClient().
 		WithOption(OPT_PROXY, proxy).
-		Get("http://httpbin.org/get", nil)
+		Get("http://httpbin.org/get")
 
 	if err != nil {
 		t.Error(err)
@@ -309,7 +309,7 @@ func _TestProxy(t *testing.T) {
 		WithOption(OPT_PROXY_FUNC, func(*http.Request) (int, string, error) {
 			return PROXY_HTTP, proxy, nil
 		}).
-		Get("http://httpbin.org/get", nil)
+		Get("http://httpbin.org/get")
 
 	if err != nil {
 		t.Error(err)
@@ -324,7 +324,7 @@ func TestTimeout(t *testing.T) {
 	// connect timeout
 	res, err := NewHttpClient().
 		WithOption(OPT_CONNECTTIMEOUT_MS, 1).
-		Get("http://httpbin.org/get", nil)
+		Get("http://httpbin.org/get")
 
 	if err == nil {
 		t.Error("OPT_CONNECTTIMEOUT_MS does not work")
@@ -337,7 +337,7 @@ func TestTimeout(t *testing.T) {
 	// timeout
 	res, err = NewHttpClient().
 		WithOption(OPT_TIMEOUT, 3).
-		Get("http://httpbin.org/delay/3", nil)
+		Get("http://httpbin.org/delay/3")
 
 	if err == nil {
 		t.Error("OPT_TIMEOUT does not work")
@@ -350,7 +350,7 @@ func TestTimeout(t *testing.T) {
 	// no timeout
 	res, err = NewHttpClient().
 		WithOption(OPT_TIMEOUT, 100).
-		Get("http://httpbin.org/delay/3", nil)
+		Get("http://httpbin.org/delay/3")
 
 	if err != nil {
 		t.Error("OPT_TIMEOUT does not work properly")
@@ -371,7 +371,7 @@ func TestRedirect(t *testing.T) {
 			OPT_FOLLOWLOCATION: true,
 			OPT_MAXREDIRS:      10,
 		}).
-		Get("http://httpbin.org/redirect/3", nil)
+		Get("http://httpbin.org/redirect/3")
 
 	if err != nil {
 		t.Error(err)
@@ -403,7 +403,7 @@ func TestRedirect(t *testing.T) {
 	// no follow
 	res, err = c.
 		WithOption(OPT_FOLLOWLOCATION, false).
-		Get("http://httpbin.org/relative-redirect/3", nil)
+		Get("http://httpbin.org/relative-redirect/3")
 
 	if err == nil {
 		t.Error("Must not follow location")
@@ -420,7 +420,7 @@ func TestRedirect(t *testing.T) {
 	// maxredirs
 	res, err = c.
 		WithOption(OPT_MAXREDIRS, 2).
-		Get("http://httpbin.org/relative-redirect/3", nil)
+		Get("http://httpbin.org/relative-redirect/3")
 
 	if err == nil {
 		t.Error("Must not follow through")
@@ -447,7 +447,7 @@ func TestRedirect(t *testing.T) {
 
 			return nil
 		}).
-		Get("http://httpbin.org/relative-redirect/3", nil)
+		Get("http://httpbin.org/relative-redirect/3")
 
 	if err == nil {
 		t.Error("Must not follow through")
@@ -470,7 +470,7 @@ func TestCookie(t *testing.T) {
 			Name:  "username",
 			Value: "dong",
 		}).
-		Get("http://httpbin.org/cookies", nil)
+		Get("http://httpbin.org/cookies")
 
 	if err != nil {
 		t.Error(err)
@@ -532,7 +532,7 @@ func TestCookie(t *testing.T) {
 			Name:  "username",
 			Value: "octcat",
 		}).
-		Get("http://httpbin.org/cookies", nil)
+		Get("http://httpbin.org/cookies")
 
 	if err != nil {
 		t.Error(err)
@@ -563,7 +563,7 @@ func TestGzip(t *testing.T) {
 	c := NewHttpClient()
 	res, err := c.
 		WithHeader("Accept-Encoding", "gzip, deflate").
-		Get("http://httpbin.org/gzip", nil)
+		Get("http://httpbin.org/gzip")
 
 	if err != nil {
 		t.Error(err)
@@ -592,7 +592,7 @@ func _TestCurrentUA(ch chan bool, t *testing.T, c *HttpClient, ua string) {
 	res, err := c.
 		Begin().
 		WithOption(OPT_USERAGENT, ua).
-		Get("http://httpbin.org/headers", nil)
+		Get("http://httpbin.org/headers")
 
 	if err != nil {
 		t.Error(err)
@@ -669,7 +669,7 @@ func TestOptDebug(t *testing.T) {
 	c := NewHttpClient()
 	c.
 		WithOption(OPT_DEBUG, true).
-		Get("http://httpbin.org/get", nil)
+		Get("http://httpbin.org/get")
 }
 
 func TestUnsafeTLS(t *testing.T) {
@@ -683,7 +683,7 @@ func TestUnsafeTLS(t *testing.T) {
 
 	res, err := c.
 		WithOption(OPT_UNSAFE_TLS, true).
-		Get(unsafeUrl, nil)
+		Get(unsafeUrl)
 	if err != nil {
 		t.Error(err)
 	}

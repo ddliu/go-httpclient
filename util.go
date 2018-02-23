@@ -12,18 +12,8 @@ import (
 	"strings"
 )
 
-// Convert string map to url component.
-func paramsToString(params map[string]string) string {
-	values := url.Values{}
-	for k, v := range params {
-		values.Set(k, v)
-	}
-
-	return values.Encode()
-}
-
 // Add params to a url string.
-func addParams(url_ string, params map[string]string) string {
+func addParams(url_ string, params url.Values) string {
 	if len(params) == 0 {
 		return url_
 	}
@@ -33,9 +23,9 @@ func addParams(url_ string, params map[string]string) string {
 	}
 
 	if strings.HasSuffix(url_, "?") || strings.HasSuffix(url_, "&") {
-		url_ += paramsToString(params)
+		url_ += params.Encode()
 	} else {
-		url_ += "&" + paramsToString(params)
+		url_ += "&" + params.Encode()
 	}
 
 	return url_
@@ -98,7 +88,7 @@ func mergeHeaders(headers ...map[string]string) map[string]string {
 }
 
 // Does the params contain a file?
-func checkParamFile(params map[string]string) bool {
+func checkParamFile(params url.Values) bool {
 	for k, _ := range params {
 		if k[0] == '@' {
 			return true
@@ -150,4 +140,23 @@ func parseMap(m Map) (map[int]interface{}, map[string]string) {
 	}
 
 	return options, headers
+}
+
+func toUrlValues(v interface{}) url.Values {
+	switch t := v.(type) {
+	case url.Values:
+		return t
+	case map[string][]string:
+		return url.Values(t)
+	case map[string]string:
+		rst := make(url.Values)
+		for k, v := range t {
+			rst.Add(k, v)
+		}
+		return rst
+	case nil:
+		return make(url.Values)
+	default:
+		panic("Invalid value")
+	}
 }

@@ -621,18 +621,18 @@ func (this *HttpClient) Head(url string) (*Response, error) {
 }
 
 // The GET request
-func (this *HttpClient) Get(url string, params ...map[string]string) (*Response, error) {
+func (this *HttpClient) Get(url string, params ...interface{}) (*Response, error) {
 	for _, p := range params {
-		url = addParams(url, p)
+		url = addParams(url, toUrlValues(p))
 	}
 
 	return this.Do("GET", url, nil, nil)
 }
 
 // The DELETE request
-func (this *HttpClient) Delete(url string, params ...map[string]string) (*Response, error) {
+func (this *HttpClient) Delete(url string, params ...interface{}) (*Response, error) {
 	for _, p := range params {
-		url = addParams(url, p)
+		url = addParams(url, toUrlValues(p))
 	}
 
 	return this.Do("DELETE", url, nil, nil)
@@ -645,36 +645,40 @@ func (this *HttpClient) Delete(url string, params ...map[string]string) (*Respon
 //
 // If any of the params key starts with "@", it is considered as a form file
 // (similar to CURL but different).
-func (this *HttpClient) Post(url string, params map[string]string) (*Response,
+func (this *HttpClient) Post(url string, params interface{}) (*Response,
 	error) {
+	paramsValues := toUrlValues(params)
 	// Post with files should be sent as multipart.
-	if checkParamFile(params) {
+	if checkParamFile(paramsValues) {
 		return this.PostMultipart(url, params)
 	}
 
 	headers := make(map[string]string)
 	headers["Content-Type"] = "application/x-www-form-urlencoded"
-	body := strings.NewReader(paramsToString(params))
+	body := strings.NewReader(paramsValues.Encode())
 
 	return this.Do("POST", url, headers, body)
 }
 
 // Post with the request encoded as "multipart/form-data".
-func (this *HttpClient) PostMultipart(url string, params map[string]string) (
+func (this *HttpClient) PostMultipart(url string, params interface{}) (
 	*Response, error) {
 	body := &bytes.Buffer{}
 	writer := multipart.NewWriter(body)
 
+	paramsValues := toUrlValues(params)
 	// check files
-	for k, v := range params {
-		// is file
-		if k[0] == '@' {
-			err := addFormFile(writer, k[1:], v)
-			if err != nil {
-				return nil, err
+	for k, v := range paramsValues {
+		for _, vv := range v {
+			// is file
+			if k[0] == '@' {
+				err := addFormFile(writer, k[1:], vv)
+				if err != nil {
+					return nil, err
+				}
+			} else {
+				writer.WriteField(k, vv)
 			}
-		} else {
-			writer.WriteField(k, v)
 		}
 	}
 	headers := make(map[string]string)
@@ -726,7 +730,7 @@ func (this *HttpClient) PutJson(url string, data interface{}) (*Response, error)
 // The OPTIONS request
 func (this *HttpClient) Options(url string, params ...map[string]string) (*Response, error) {
 	for _, p := range params {
-		url = addParams(url, p)
+		url = addParams(url, toUrlValues(p))
 	}
 
 	return this.Do("OPTIONS", url, nil, nil)
@@ -735,7 +739,7 @@ func (this *HttpClient) Options(url string, params ...map[string]string) (*Respo
 // The CONNECT request
 func (this *HttpClient) Connect(url string, params ...map[string]string) (*Response, error) {
 	for _, p := range params {
-		url = addParams(url, p)
+		url = addParams(url, toUrlValues(p))
 	}
 
 	return this.Do("CONNECT", url, nil, nil)
@@ -744,7 +748,7 @@ func (this *HttpClient) Connect(url string, params ...map[string]string) (*Respo
 // The TRACE request
 func (this *HttpClient) Trace(url string, params ...map[string]string) (*Response, error) {
 	for _, p := range params {
-		url = addParams(url, p)
+		url = addParams(url, toUrlValues(p))
 	}
 
 	return this.Do("TRACE", url, nil, nil)
@@ -753,7 +757,7 @@ func (this *HttpClient) Trace(url string, params ...map[string]string) (*Respons
 // The PATCH request
 func (this *HttpClient) Patch(url string, params ...map[string]string) (*Response, error) {
 	for _, p := range params {
-		url = addParams(url, p)
+		url = addParams(url, toUrlValues(p))
 	}
 
 	return this.Do("PATCH", url, nil, nil)
