@@ -1,4 +1,4 @@
-// Copyright 2014-2015 Liu Dong <ddliuhb@gmail.com>.
+// Copyright 2014-2018 Liu Dong <ddliuhb@gmail.com>.
 // Licensed under the MIT license.
 
 // Test httpclient with httpbin(http://httpbin.org)
@@ -158,7 +158,7 @@ func TestResponse(t *testing.T) {
 
 func TestHead(t *testing.T) {
 	c := NewHttpClient()
-	res, err := c.Head("http://httpbin.org/get", nil)
+	res, err := c.Head("http://httpbin.org/get")
 	if err != nil {
 		t.Error(err)
 	}
@@ -171,6 +171,82 @@ func TestHead(t *testing.T) {
 		t.Error("HEAD should not get body")
 	}
 
+}
+
+func TestDelete(t *testing.T) {
+	c := NewHttpClient()
+	res, err := c.Delete("http://httpbin.org/delete")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.StatusCode != 200 {
+		t.Error("Status code is not 200")
+	}
+}
+
+func TestOptions(t *testing.T) {
+	c := NewHttpClient()
+	res, err := c.Options("http://httpbin.org")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.StatusCode != 200 {
+		t.Errorf("Status code is not 200: %d", res.StatusCode)
+	}
+}
+
+func TestPatch(t *testing.T) {
+	c := NewHttpClient()
+	res, err := c.Patch("http://httpbin.org/patch")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.StatusCode != 200 {
+		t.Errorf("Status code is not 200: %d", res.StatusCode)
+	}
+}
+
+func TestPostJson(t *testing.T) {
+	c := NewHttpClient()
+	type jsonDataType struct {
+		Name string
+	}
+
+	jsonData := jsonDataType{
+		Name: "httpclient",
+	}
+
+	res, err := c.PostJson("http://httpbin.org/post", jsonData)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.StatusCode != 200 {
+		t.Error("Status code is not 200")
+	}
+}
+
+func TestPutJson(t *testing.T) {
+	c := NewHttpClient()
+	type jsonDataType struct {
+		Name string
+	}
+
+	jsonData := jsonDataType{
+		Name: "httpclient",
+	}
+
+	res, err := c.PutJson("http://httpbin.org/put", jsonData)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.StatusCode != 200 {
+		t.Error("Status code is not 200")
+	}
 }
 
 func TestHeaders(t *testing.T) {

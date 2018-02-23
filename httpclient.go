@@ -1,4 +1,4 @@
-// Copyright 2014-2015 Liu Dong <ddliuhb@gmail.com>.
+// Copyright 2014-2018 Liu Dong <ddliuhb@gmail.com>.
 // Licensed under the MIT license.
 
 // Powerful and easy to use http client
@@ -26,13 +26,14 @@ import (
 
 	"compress/gzip"
 
+	"encoding/json"
 	"mime/multipart"
 )
 
 // Constants definations
 // CURL options, see https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-	VERSION   = "0.5.2"
+	VERSION   = "0.6.0"
 	USERAGENT = "go-httpclient v" + VERSION
 
 	PROXY_HTTP    = 0
@@ -392,7 +393,7 @@ func NewHttpClient() *HttpClient {
 // Powerful and easy to use HTTP client.
 type HttpClient struct {
 	// Default options of this client.
-	Options map[int]interface{}
+	options map[int]interface{}
 
 	// Default headers of this client.
 	Headers map[string]string
@@ -429,11 +430,11 @@ func (this *HttpClient) Defaults(defaults Map) *HttpClient {
 	options, headers := parseMap(defaults)
 
 	// merge options
-	if this.Options == nil {
-		this.Options = options
+	if this.options == nil {
+		this.options = options
 	} else {
 		for k, v := range options {
-			this.Options[k] = v
+			this.options[k] = v
 		}
 	}
 
@@ -536,7 +537,7 @@ func (this *HttpClient) WithCookie(cookies ...*http.Cookie) *HttpClient {
 // Usually we just need the Get and Post method.
 func (this *HttpClient) Do(method string, url string, headers map[string]string,
 	body io.Reader) (*Response, error) {
-	options := mergeOptions(defaultOptions, this.Options, this.oneTimeOptions)
+	options := mergeOptions(defaultOptions, this.options, this.oneTimeOptions)
 	headers = mergeHeaders(this.Headers, this.oneTimeHeaders, headers)
 	cookies := this.oneTimeCookies
 
@@ -615,25 +616,24 @@ func (this *HttpClient) Do(method string, url string, headers map[string]string,
 }
 
 // The HEAD request
-func (this *HttpClient) Head(url string, params map[string]string) (*Response,
-	error) {
-	url = addParams(url, params)
-
+func (this *HttpClient) Head(url string) (*Response, error) {
 	return this.Do("HEAD", url, nil, nil)
 }
 
 // The GET request
-func (this *HttpClient) Get(url string, params map[string]string) (*Response,
-	error) {
-	url = addParams(url, params)
+func (this *HttpClient) Get(url string, params ...map[string]string) (*Response, error) {
+	for _, p := range params {
+		url = addParams(url, p)
+	}
 
 	return this.Do("GET", url, nil, nil)
 }
 
 // The DELETE request
-func (this *HttpClient) Delete(url string, params map[string]string) (*Response,
-	error) {
-	url = addParams(url, params)
+func (this *HttpClient) Delete(url string, params ...map[string]string) (*Response, error) {
+	for _, p := range params {
+		url = addParams(url, p)
+	}
 
 	return this.Do("DELETE", url, nil, nil)
 }
@@ -686,6 +686,77 @@ func (this *HttpClient) PostMultipart(url string, params map[string]string) (
 	}
 
 	return this.Do("POST", url, headers, body)
+}
+
+func (this *HttpClient) sendJson(method string, url string, data interface{}) (*Response, error) {
+	headers := make(map[string]string)
+	headers["Content-Type"] = "application/json"
+
+	var body []byte
+	switch t := data.(type) {
+	case []byte:
+		body = t
+	case string:
+		body = []byte(t)
+	default:
+		var err error
+		body, err = json.Marshal(data)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	return this.Do(method, url, headers, bytes.NewReader(body))
+}
+
+func (this *HttpClient) PostJson(url string, data interface{}) (*Response, error) {
+	return this.sendJson("POST", url, data)
+}
+
+// The PUT request
+func (this *HttpClient) Put(url string, body io.Reader) (*Response, error) {
+	return this.Do("PUT", url, nil, body)
+}
+
+// Put json data
+func (this *HttpClient) PutJson(url string, data interface{}) (*Response, error) {
+	return this.sendJson("PUT", url, data)
+}
+
+// The OPTIONS request
+func (this *HttpClient) Options(url string, params ...map[string]string) (*Response, error) {
+	for _, p := range params {
+		url = addParams(url, p)
+	}
+
+	return this.Do("OPTIONS", url, nil, nil)
+}
+
+// The CONNECT request
+func (this *HttpClient) Connect(url string, params ...map[string]string) (*Response, error) {
+	for _, p := range params {
+		url = addParams(url, p)
+	}
+
+	return this.Do("CONNECT", url, nil, nil)
+}
+
+// The TRACE request
+func (this *HttpClient) Trace(url string, params ...map[string]string) (*Response, error) {
+	for _, p := range params {
+		url = addParams(url, p)
+	}
+
+	return this.Do("TRACE", url, nil, nil)
+}
+
+// The PATCH request
+func (this *HttpClient) Patch(url string, params ...map[string]string) (*Response, error) {
+	for _, p := range params {
+		url = addParams(url, p)
+	}
+
+	return this.Do("PATCH", url, nil, nil)
 }
 
 // Get cookies of the client jar.

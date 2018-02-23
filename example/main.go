@@ -1,4 +1,4 @@
-// Copyright 2014-2015 Liu Dong <ddliuhb@gmail.com>.
+// Copyright 2014-2018 Liu Dong <ddliuhb@gmail.com>.
 // Licensed under the MIT license.
 
 package main
@@ -26,11 +26,11 @@ func main() {
 	res, _ := httpclient.
 		WithHeader("Accept-Language", "en-us").
 		WithCookie(&http.Cookie{
-		Name:  "name",
-		Value: "github",
-	}).
+			Name:  "name",
+			Value: "github",
+		}).
 		WithHeader("Referer", "http://google.com").
-		Get(SERVER, nil)
+		Get(SERVER)
 
 	fmt.Println("Cookies:")
 	for k, v := range httpclient.CookieValues(SERVER) {

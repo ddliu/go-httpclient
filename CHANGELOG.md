@@ -1,5 +1,11 @@
 ## Changelog
 
+### v0.6.0 (2018-02-23)
+
+More request method support.
+
+Json request support.
+
 ### v0.5.1 (2015-12-31)
 
 Add `OPT_DEBUG` option.

@@ -68,7 +68,7 @@ requests.
 In most cases you just need the `Get` and `Post` method after initializing:
 
 ```go
-func (this *HttpClient) Get(url string, params map[string]string) (*httpclient.Response, error)
+func (this *HttpClient) Get(url string, params ...map[string]string) (*httpclient.Response, error)
 
 func (this *HttpClient) Post(url string, params map[string]string) (*httpclient.Response, error)
 ```
@@ -220,19 +220,12 @@ c1 := httpclient.NewHttpClient().Defaults(httpclient.Map {
     httpclient.OPT_USERAGENT: "browser1",
 })
 
-c1.Get("http://google.com/", nil)
+c1.Get("http://google.com/")
 
 c2 := httpclient.NewHttpClient().Defaults(httpclient.Map {
     httpclient.OPT_USERAGENT: "browser2",
 })
 
-c2.Get("http://google.com/", nil)
+c2.Get("http://google.com/")
 
 ```
-
-## TODO
-
-- Support all HTTP methods directly
-- Direct JSON support?
-- Socks proxy support
-- Improve API design
