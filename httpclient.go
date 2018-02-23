@@ -28,6 +28,8 @@ import (
 
 	"encoding/json"
 	"mime/multipart"
+
+	"crypto/tls"
 )
 
 // Constants definations
@@ -182,7 +184,10 @@ func prepareRequest(method string, url_ string, headers map[string]string,
 //
 // Handles timemout, proxy and maybe other transport related options here.
 func prepareTransport(options map[int]interface{}) (http.RoundTripper, error) {
-	transport := &http.Transport{}
+	transport := &http.Transport{
+		// Warning: This turns off SSL strict certificate validation.
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
+	}
 
 	connectTimeoutMS := 0
 
@@ -655,6 +660,15 @@ func (this *HttpClient) Post(url string, params map[string]string) (*Response,
 	headers := make(map[string]string)
 	headers["Content-Type"] = "application/x-www-form-urlencoded"
 	body := strings.NewReader(paramsToString(params))
+
+	return this.Do("POST", url, headers, body)
+}
+
+func (this *HttpClient) PostRaw(url string, rawbody string) (*Response,
+	error) {
+	headers := make(map[string]string)
+	headers["Content-Type"] = "application/x-www-form-urlencoded"
+	body := strings.NewReader(rawbody)
 
 	return this.Do("POST", url, headers, body)
 }
