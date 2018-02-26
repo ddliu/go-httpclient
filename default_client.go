@@ -10,7 +10,7 @@ var defaultClient = &HttpClient{
 	reuseJar:       true,
 }
 
-var Defaults func(Map) *HttpClient
+var Defaults = defaultClient.Defaults
 var Begin = defaultClient.Begin
 var Do = defaultClient.Do
 var Get = defaultClient.Get
