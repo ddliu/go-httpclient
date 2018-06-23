@@ -3,6 +3,8 @@
 [![Travis](https://img.shields.io/travis/ddliu/go-httpclient.svg?style=flat-square)](https://travis-ci.org/ddliu/go-httpclient)
 [![godoc](https://img.shields.io/badge/godoc-reference-blue.svg?style=flat-square)](https://godoc.org/github.com/ddliu/go-httpclient)
 [![License](https://img.shields.io/badge/license-MIT-blue.svg?style=flat-square)](LICENSE)
+[![Go Report Card](https://goreportcard.com/badge/github.com/ddliu/go-httpclient)](https://goreportcard.com/report/github.com/ddliu/go-httpclient)
+[![cover.run](https://cover.run/go/github.com/ddliu/go-httpclient.svg?style=flat&tag=golang-1.10)](https://cover.run/go?tag=golang-1.10&repo=github.com%2Fddliu%2Fgo-httpclient)
 
 Advanced HTTP client for golang.
 
