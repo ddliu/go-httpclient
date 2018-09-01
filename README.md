@@ -137,11 +137,11 @@ res.Body.Close()
 
 // ToString
 res, err = httpclient.Get("http://google.com")
-bodyString,err := res.ToString()
+bodyString, err := res.ToString()
 
 // ReadAll
 res, err = httpclient.Get("http://google.com")
-bodyBytes := res.ReadAll()
+bodyBytes, err := res.ReadAll()
 ```
 
 ### Handle Cookies
