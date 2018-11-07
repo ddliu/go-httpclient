@@ -694,7 +694,7 @@ func (this *HttpClient) PostMultipart(url string, params interface{}) (
 
 func (this *HttpClient) sendJson(method string, url string, data interface{}) (*Response, error) {
 	headers := make(map[string]string)
-	headers["Content-Type"] = "application/json"
+	headers["Content-Type"] = "application/json; charset=utf-8"
 
 	var body []byte
 	switch t := data.(type) {
