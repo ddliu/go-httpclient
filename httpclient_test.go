@@ -692,3 +692,40 @@ func TestUnsafeTLS(t *testing.T) {
 		t.Error("OPT_UNSAFE_TLS error")
 	}
 }
+
+func TestPutJsonWithCharset(t *testing.T) {
+	c := NewHttpClient()
+	type jsonDataType struct {
+		Name string
+	}
+
+	jsonData := jsonDataType{
+		Name: "httpclient",
+	}
+
+	contentType := "application/json; charset=utf-8"
+	res, err := c.
+		WithHeader("Content-Type", contentType).
+		PutJson("http://httpbin.org/put", jsonData)
+	if err != nil {
+		t.Error(err)
+	}
+
+	body, err := res.ReadAll()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	var info ResponseInfo
+
+	err = json.Unmarshal(body, &info)
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	if info.Headers["Content-Type"] != contentType {
+		t.Error("Setting charset not working: " + info.Headers["Content-Type"])
+	}
+}

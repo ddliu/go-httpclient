@@ -33,7 +33,7 @@ import (
 // Constants definations
 // CURL options, see https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-	VERSION   = "0.6.0"
+	VERSION   = "0.6.1"
 	USERAGENT = "go-httpclient v" + VERSION
 
 	PROXY_HTTP    = 0
@@ -538,7 +538,7 @@ func (this *HttpClient) WithCookie(cookies ...*http.Cookie) *HttpClient {
 func (this *HttpClient) Do(method string, url string, headers map[string]string,
 	body io.Reader) (*Response, error) {
 	options := mergeOptions(defaultOptions, this.options, this.oneTimeOptions)
-	headers = mergeHeaders(this.Headers, this.oneTimeHeaders, headers)
+	headers = mergeHeaders(this.Headers, headers, this.oneTimeHeaders)
 	cookies := this.oneTimeCookies
 
 	var transport http.RoundTripper
