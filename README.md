@@ -117,7 +117,7 @@ httpclient.
         "another-header": "another-value",
         "and-another-header": "another-value",
     }).
-    WithOption(httpclent.OPT_TIMEOUT, 60).
+    WithOption(httpclient.OPT_TIMEOUT, 60).
     WithCookie(&http.Cookie{
         Name: "uid",
         Value: "123",
