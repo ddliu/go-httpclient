@@ -385,6 +385,7 @@ func NewHttpClient() *HttpClient {
 	c := &HttpClient{
 		reuseTransport: true,
 		reuseJar:       true,
+		lock:           new(sync.Mutex),
 	}
 
 	return c
@@ -423,6 +424,8 @@ type HttpClient struct {
 
 	// Make requests of one client concurrent safe.
 	lock *sync.Mutex
+
+	withLock bool
 }
 
 // Set default options and headers.
@@ -453,10 +456,8 @@ func (this *HttpClient) Defaults(defaults Map) *HttpClient {
 // Begin marks the begining of a request, it's necessary for concurrent
 // requests.
 func (this *HttpClient) Begin() *HttpClient {
-	if this.lock == nil {
-		this.lock = new(sync.Mutex)
-	}
 	this.lock.Lock()
+	this.withLock = true
 
 	return this
 }
@@ -471,7 +472,7 @@ func (this *HttpClient) reset() {
 
 	// nil means the Begin has not been called, asume requests are not
 	// concurrent.
-	if this.lock != nil {
+	if this.withLock {
 		this.lock.Unlock()
 	}
 }

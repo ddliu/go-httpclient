@@ -4,10 +4,13 @@
 // Powerful and easy to use http client
 package httpclient
 
+import "sync"
+
 // The default client for convenience
 var defaultClient = &HttpClient{
 	reuseTransport: true,
 	reuseJar:       true,
+	lock:           new(sync.Mutex),
 }
 
 var Defaults = defaultClient.Defaults
