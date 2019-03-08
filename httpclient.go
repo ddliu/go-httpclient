@@ -1,4 +1,4 @@
-// Copyright 2014-2018 Liu Dong <ddliuhb@gmail.com>.
+// Copyright 2014-2019 Liu Dong <ddliuhb@gmail.com>.
 // Licensed under the MIT license.
 
 // Powerful and easy to use http client
@@ -33,7 +33,7 @@ import (
 // Constants definations
 // CURL options, see https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-	VERSION   = "0.6.1"
+	VERSION   = "0.6.2"
 	USERAGENT = "go-httpclient v" + VERSION
 
 	PROXY_HTTP    = 0
