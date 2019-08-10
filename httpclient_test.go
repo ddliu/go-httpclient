@@ -249,6 +249,26 @@ func TestPutJson(t *testing.T) {
 	}
 }
 
+func TestPatchJson(t *testing.T) {
+	c := NewHttpClient()
+	type jsonDataType struct {
+		Name string
+	}
+
+	jsonData := jsonDataType{
+		Name: "httpclient",
+	}
+
+	res, err := c.PatchJson("http://httpbin.org/patch", jsonData)
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.StatusCode != 200 {
+		t.Error("Status code is not 200")
+	}
+}
+
 func TestHeaders(t *testing.T) {
 	// set referer in options
 	res, err := NewHttpClient().
