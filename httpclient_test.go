@@ -769,7 +769,7 @@ func TestCancel(t *testing.T) {
 
 	err := <-ch
 
-	if err == nil || !strings.Contains(err.Error(), "context canceled") {
+	if err == nil || !strings.Contains(err.Error(), "cancel") {
 		t.Error("Cancel error")
 	}
 }
