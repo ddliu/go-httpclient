@@ -17,6 +17,7 @@ Advanced HTTP client for golang.
 - Cookie
 - GZIP
 - Redirect Policy
+- Cancel(with context)
 
 ## Installation
 
