@@ -222,6 +222,7 @@ Available options as below:
 - `OPT_PROXY_FUNC`: Function to specify proxy.
 - `OPT_UNSAFE_TLS`: Set to `true` to disable TLS certificate checking.
 - `OPT_DEBUG`: Print request info.
+- `OPT_CONTEXT`: Set `context.context` (can be used to cancel request).
 
 ## Seperate Clients
 
