@@ -5,12 +5,14 @@
 package httpclient
 
 import (
+	"context"
 	"encoding/json"
 	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strings"
 	"testing"
+	"time"
 )
 
 // common response format on httpbin.org
@@ -747,5 +749,27 @@ func TestPutJsonWithCharset(t *testing.T) {
 
 	if info.Headers["Content-Type"] != contentType {
 		t.Error("Setting charset not working: " + info.Headers["Content-Type"])
+	}
+}
+
+func TestCancel(t *testing.T) {
+	ctx, cancel := context.WithCancel(context.Background())
+	c := NewHttpClient()
+
+	ch := make(chan error)
+	go func() {
+		_, err := c.Begin().
+			WithOption(OPT_CONTEXT, ctx).
+			Get("http://httpbin.org/delay/3")
+		ch <- err
+	}()
+
+	time.Sleep(1 * time.Second)
+	cancel()
+
+	err := <-ch
+
+	if err == nil || !strings.Contains(err.Error(), "context canceled") {
+		t.Error("Cancel error")
 	}
 }
