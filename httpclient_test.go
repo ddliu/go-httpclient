@@ -231,6 +231,19 @@ func TestPostJson(t *testing.T) {
 	}
 }
 
+func TestPostText(t *testing.T) {
+	c := NewHttpClient()
+
+	res, err := c.Post("http://httpbin.org/post", "hello")
+	if err != nil {
+		t.Error(err)
+	}
+
+	if res.StatusCode != 200 {
+		t.Error("Status code is not 200")
+	}
+}
+
 func TestPutJson(t *testing.T) {
 	c := NewHttpClient()
 	type jsonDataType struct {

@@ -658,6 +658,11 @@ func (this *HttpClient) Delete(url string, params ...interface{}) (*Response, er
 // (similar to CURL but different).
 func (this *HttpClient) Post(url string, params interface{}) (*Response,
 	error) {
+	t := checkParamsType(params)
+	if t == 2 {
+		return this.Do("POST", url, nil, toReader(params))
+	}
+
 	paramsValues := toUrlValues(params)
 	// Post with files should be sent as multipart.
 	if checkParamFile(paramsValues) {
