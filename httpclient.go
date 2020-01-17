@@ -477,6 +477,7 @@ func (this *HttpClient) reset() {
 	// nil means the Begin has not been called, asume requests are not
 	// concurrent.
 	if this.withLock {
+		this.withLock = false
 		this.lock.Unlock()
 	}
 }

@@ -786,3 +786,9 @@ func TestCancel(t *testing.T) {
 		t.Error("Cancel error")
 	}
 }
+
+func TestIssue41(t *testing.T) {
+	c := NewHttpClient()
+	c.Begin().Get("http://httpbin.org")
+	c.Get("http://httpbin.org")
+}
