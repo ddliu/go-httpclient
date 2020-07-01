@@ -396,7 +396,8 @@ func TestTimeout(t *testing.T) {
 	}
 }
 
-func TestRedirect(t *testing.T) {
+// Disabled because of the redirection issue of httpbin: https://github.com/postmanlabs/httpbin/issues/617
+func _TestRedirect(t *testing.T) {
 	c := NewHttpClient().Defaults(Map{
 		OPT_USERAGENT: "test redirect",
 	})
