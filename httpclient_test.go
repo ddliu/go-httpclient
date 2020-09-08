@@ -370,11 +370,11 @@ func TestTimeout(t *testing.T) {
 	}
 
 	res, err = NewHttpClient().
-		WithOption(OPT_CONNECTTIMEOUT_D, time.Millisecond).
+		WithOption(OPT_CONNECTTIMEOUT, time.Millisecond).
 		Get("http://httpbin.org/get")
 
 	if err == nil {
-		t.Error("OPT_CONNECTTIMEOUT_D does not work")
+		t.Error("OPT_CONNECTTIMEOUT (time.Duration) does not work")
 	}
 
 	if !IsTimeoutError(err) {
@@ -395,11 +395,11 @@ func TestTimeout(t *testing.T) {
 	}
 
 	res, err = NewHttpClient().
-		WithOption(OPT_TIMEOUT_D, 3*time.Second).
+		WithOption(OPT_TIMEOUT, 3*time.Second).
 		Get("http://httpbin.org/delay/3")
 
 	if err == nil {
-		t.Error("OPT_TIMEOUT_D does not work")
+		t.Error("OPT_TIMEOUT (time.Duration) does not work")
 	}
 
 	if !strings.Contains(err.Error(), "timeout") {
