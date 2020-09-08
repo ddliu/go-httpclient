@@ -369,6 +369,18 @@ func TestTimeout(t *testing.T) {
 		t.Error("Maybe it's not a timeout error?", err)
 	}
 
+	res, err = NewHttpClient().
+		WithOption(OPT_CONNECTTIMEOUT, time.Millisecond).
+		Get("http://httpbin.org/get")
+
+	if err == nil {
+		t.Error("OPT_CONNECTTIMEOUT (time.Duration) does not work")
+	}
+
+	if !IsTimeoutError(err) {
+		t.Error("Maybe it's not a timeout error?", err)
+	}
+
 	// timeout
 	res, err = NewHttpClient().
 		WithOption(OPT_TIMEOUT, 3).
@@ -376,6 +388,18 @@ func TestTimeout(t *testing.T) {
 
 	if err == nil {
 		t.Error("OPT_TIMEOUT does not work")
+	}
+
+	if !strings.Contains(err.Error(), "timeout") {
+		t.Error("Maybe it's not a timeout error?", err)
+	}
+
+	res, err = NewHttpClient().
+		WithOption(OPT_TIMEOUT, 3*time.Second).
+		Get("http://httpbin.org/delay/3")
+
+	if err == nil {
+		t.Error("OPT_TIMEOUT (time.Duration) does not work")
 	}
 
 	if !strings.Contains(err.Error(), "timeout") {

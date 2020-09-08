@@ -188,45 +188,53 @@ func prepareRequest(method string, url_ string, headers map[string]string,
 func prepareTransport(options map[int]interface{}) (http.RoundTripper, error) {
 	transport := &http.Transport{}
 
-	connectTimeoutMS := 0
+	var connectTimeout time.Duration
 
 	if connectTimeoutMS_, ok := options[OPT_CONNECTTIMEOUT_MS]; ok {
-		if connectTimeoutMS, ok = connectTimeoutMS_.(int); !ok {
+		if connectTimeoutMS, ok := connectTimeoutMS_.(int); ok {
+			connectTimeout = time.Duration(connectTimeoutMS) * time.Millisecond
+		} else {
 			return nil, fmt.Errorf("OPT_CONNECTTIMEOUT_MS must be int")
 		}
 	} else if connectTimeout_, ok := options[OPT_CONNECTTIMEOUT]; ok {
-		if connectTimeout, ok := connectTimeout_.(int); ok {
-			connectTimeoutMS = connectTimeout * 1000
-		} else {
-			return nil, fmt.Errorf("OPT_CONNECTTIMEOUT must be int")
+		if connectTimeout, ok = connectTimeout_.(time.Duration); !ok {
+			if connectTimeoutS, ok := connectTimeout_.(int); ok {
+				connectTimeout = time.Duration(connectTimeoutS) * time.Second
+			} else {
+				return nil, fmt.Errorf("OPT_CONNECTTIMEOUT must be int or time.Duration")
+			}
 		}
 	}
 
-	timeoutMS := 0
+	var timeout time.Duration
 
 	if timeoutMS_, ok := options[OPT_TIMEOUT_MS]; ok {
-		if timeoutMS, ok = timeoutMS_.(int); !ok {
+		if timeoutMS, ok := timeoutMS_.(int); ok {
+			timeout = time.Duration(timeoutMS) * time.Millisecond
+		} else {
 			return nil, fmt.Errorf("OPT_TIMEOUT_MS must be int")
 		}
 	} else if timeout_, ok := options[OPT_TIMEOUT]; ok {
-		if timeout, ok := timeout_.(int); ok {
-			timeoutMS = timeout * 1000
-		} else {
-			return nil, fmt.Errorf("OPT_TIMEOUT must be int")
+		if timeout, ok = timeout_.(time.Duration); !ok {
+			if timeoutS, ok := timeout_.(int); ok {
+				timeout = time.Duration(timeoutS) * time.Second
+			} else {
+				return nil, fmt.Errorf("OPT_TIMEOUT must be int or time.Duration")
+			}
 		}
 	}
 
 	// fix connect timeout(important, or it might cause a long time wait during
 	//connection)
-	if timeoutMS > 0 && (connectTimeoutMS > timeoutMS || connectTimeoutMS == 0) {
-		connectTimeoutMS = timeoutMS
+	if timeout > 0 && (connectTimeout > timeout || connectTimeout == 0) {
+		connectTimeout = timeout
 	}
 
 	transport.Dial = func(network, addr string) (net.Conn, error) {
 		var conn net.Conn
 		var err error
-		if connectTimeoutMS > 0 {
-			conn, err = net.DialTimeout(network, addr, time.Duration(connectTimeoutMS)*time.Millisecond)
+		if connectTimeout > 0 {
+			conn, err = net.DialTimeout(network, addr, connectTimeout)
 			if err != nil {
 				return nil, err
 			}
@@ -237,8 +245,8 @@ func prepareTransport(options map[int]interface{}) (http.RoundTripper, error) {
 			}
 		}
 
-		if timeoutMS > 0 {
-			conn.SetDeadline(time.Now().Add(time.Duration(timeoutMS) * time.Millisecond))
+		if timeout > 0 {
+			conn.SetDeadline(time.Now().Add(timeout))
 		}
 
 		return conn, nil
