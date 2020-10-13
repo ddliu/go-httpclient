@@ -224,6 +224,7 @@ Available options as below:
 - `OPT_UNSAFE_TLS`: Set to `true` to disable TLS certificate checking.
 - `OPT_DEBUG`: Print request info.
 - `OPT_CONTEXT`: Set `context.context` (can be used to cancel request).
+- `OPT_BEFORE_REQUEST_FUNC`: Function to call before request is sent, option should be type `func(*http.Client, *http.Request)`.
 
 ## Seperate Clients
 

@@ -817,3 +817,28 @@ func TestIssue41(t *testing.T) {
 	c.Begin().Get("http://httpbin.org")
 	c.Get("http://httpbin.org")
 }
+
+func TestBeforeRequestFunc(t *testing.T) {
+	c := NewHttpClient()
+	res, err := c.Begin().WithOption(OPT_BEFORE_REQUEST_FUNC, func(c *http.Client, r *http.Request) {
+		r.Header.Add("test", "test")
+	}).Get("http://httpbin.org/get")
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	var info ResponseInfo
+
+	body, err := res.ReadAll()
+
+	if err != nil {
+		t.Error(err)
+	}
+
+	err = json.Unmarshal(body, &info)
+
+	if info.Headers["Test"] != "test" {
+		t.Error("header not added")
+	}
+}

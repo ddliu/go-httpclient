@@ -34,59 +34,63 @@ import (
 // Constants definations
 // CURL options, see https://github.com/bagder/curl/blob/169fedbdce93ecf14befb6e0e1ce6a2d480252a3/packages/OS400/curl.inc.in
 const (
-	VERSION   = "0.6.6"
+	VERSION   = "0.6.9"
 	USERAGENT = "go-httpclient v" + VERSION
+)
 
-	PROXY_HTTP    = 0
-	PROXY_SOCKS4  = 4
-	PROXY_SOCKS5  = 5
-	PROXY_SOCKS4A = 6
+const (
+	PROXY_HTTP int = iota
+	PROXY_SOCKS4
+	PROXY_SOCKS5
+	PROXY_SOCKS4A
 
 	// CURL like OPT
-	OPT_AUTOREFERER       = 58
-	OPT_FOLLOWLOCATION    = 52
-	OPT_CONNECTTIMEOUT    = 78
-	OPT_CONNECTTIMEOUT_MS = 156
-	OPT_MAXREDIRS         = 68
-	OPT_PROXYTYPE         = 101
-	OPT_TIMEOUT           = 13
-	OPT_TIMEOUT_MS        = 155
-	OPT_COOKIEJAR         = 10082
-	OPT_INTERFACE         = 10062
-	OPT_PROXY             = 10004
-	OPT_REFERER           = 10016
-	OPT_USERAGENT         = 10018
+	OPT_AUTOREFERER
+	OPT_FOLLOWLOCATION
+	OPT_CONNECTTIMEOUT
+	OPT_CONNECTTIMEOUT_MS
+	OPT_MAXREDIRS
+	OPT_PROXYTYPE
+	OPT_TIMEOUT
+	OPT_TIMEOUT_MS
+	OPT_COOKIEJAR
+	OPT_INTERFACE
+	OPT_PROXY
+	OPT_REFERER
+	OPT_USERAGENT
 
 	// Other OPT
-	OPT_REDIRECT_POLICY = 100000
-	OPT_PROXY_FUNC      = 100001
-	OPT_DEBUG           = 100002
-	OPT_UNSAFE_TLS      = 100004
+	OPT_REDIRECT_POLICY
+	OPT_PROXY_FUNC
+	OPT_DEBUG
+	OPT_UNSAFE_TLS
 
-	OPT_CONTEXT = 100005
+	OPT_CONTEXT
+
+	OPT_BEFORE_REQUEST_FUNC
 )
 
 // String map of options
 var CONST = map[string]int{
-	"OPT_AUTOREFERER":       58,
-	"OPT_FOLLOWLOCATION":    52,
-	"OPT_CONNECTTIMEOUT":    78,
-	"OPT_CONNECTTIMEOUT_MS": 156,
-	"OPT_MAXREDIRS":         68,
-	"OPT_PROXYTYPE":         101,
-	"OPT_TIMEOUT":           13,
-	"OPT_TIMEOUT_MS":        155,
-	"OPT_COOKIEJAR":         10082,
-	"OPT_INTERFACE":         10062,
-	"OPT_PROXY":             10004,
-	"OPT_REFERER":           10016,
-	"OPT_USERAGENT":         10018,
-
-	"OPT_REDIRECT_POLICY": 100000,
-	"OPT_PROXY_FUNC":      100001,
-	"OPT_DEBUG":           100002,
-	"OPT_UNSAFE_TLS":      100004,
-	"OPT_CONTEXT":         100005,
+	"OPT_AUTOREFERER":         OPT_AUTOREFERER,
+	"OPT_FOLLOWLOCATION":      OPT_FOLLOWLOCATION,
+	"OPT_CONNECTTIMEOUT":      OPT_CONNECTTIMEOUT,
+	"OPT_CONNECTTIMEOUT_MS":   OPT_CONNECTTIMEOUT_MS,
+	"OPT_MAXREDIRS":           OPT_MAXREDIRS,
+	"OPT_PROXYTYPE":           OPT_PROXYTYPE,
+	"OPT_TIMEOUT":             OPT_TIMEOUT,
+	"OPT_TIMEOUT_MS":          OPT_TIMEOUT_MS,
+	"OPT_COOKIEJAR":           OPT_COOKIEJAR,
+	"OPT_INTERFACE":           OPT_INTERFACE,
+	"OPT_PROXY":               OPT_PROXY,
+	"OPT_REFERER":             OPT_REFERER,
+	"OPT_USERAGENT":           OPT_USERAGENT,
+	"OPT_REDIRECT_POLICY":     OPT_REDIRECT_POLICY,
+	"OPT_PROXY_FUNC":          OPT_PROXY_FUNC,
+	"OPT_DEBUG":               OPT_DEBUG,
+	"OPT_UNSAFE_TLS":          OPT_UNSAFE_TLS,
+	"OPT_CONTEXT":             OPT_CONTEXT,
+	"OPT_BEFORE_REQUEST_FUNC": OPT_BEFORE_REQUEST_FUNC,
 }
 
 // Default options for any clients.
@@ -630,6 +634,12 @@ func (this *HttpClient) Do(method string, url string, headers map[string]string,
 	if ctx, ok := options[OPT_CONTEXT]; ok {
 		if c, ok := ctx.(context.Context); ok {
 			req = req.WithContext(c)
+		}
+	}
+
+	if beforeReqFunc, ok := options[OPT_BEFORE_REQUEST_FUNC]; ok {
+		if f, ok := beforeReqFunc.(func(c *http.Client, r *http.Request)); ok {
+			f(c, req)
 		}
 	}
 
