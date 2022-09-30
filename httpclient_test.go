@@ -390,7 +390,7 @@ func TestTimeout(t *testing.T) {
 		t.Error("OPT_TIMEOUT does not work")
 	}
 
-	if !strings.Contains(err.Error(), "timeout") {
+	if !IsTimeoutError(err) {
 		t.Error("Maybe it's not a timeout error?", err)
 	}
 
@@ -402,7 +402,7 @@ func TestTimeout(t *testing.T) {
 		t.Error("OPT_TIMEOUT (time.Duration) does not work")
 	}
 
-	if !strings.Contains(err.Error(), "timeout") {
+	if !IsTimeoutError(err) {
 		t.Error("Maybe it's not a timeout error?", err)
 	}
 
