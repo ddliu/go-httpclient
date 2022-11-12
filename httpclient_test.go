@@ -842,3 +842,26 @@ func TestBeforeRequestFunc(t *testing.T) {
 		t.Error("header not added")
 	}
 }
+
+// #50 deadlock
+func TestIssue50(t *testing.T) {
+	c := NewHttpClient()
+
+	type Node struct {
+		Name string `json:"name"`
+		Next *Node  `json:"next"`
+	}
+	n1 := Node{Name: "1", Next: nil}
+	n2 := Node{Name: "2", Next: &n1}
+	n1.Next = &n2
+	// send an object that can't be marshalled.
+	_, err := c.Begin().PostJson("http://httpbin.org/post", n2)
+	if err == nil {
+		t.Fatal("json marshal unexcepted")
+	}
+	// block here as Begin() can not require the lock.
+	_, err = c.Begin().Get("http://httpbin.org/get")
+	if err != nil {
+		t.Fatal(err)
+	}
+}
