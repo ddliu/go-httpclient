@@ -156,6 +156,17 @@ func (this *Response) ToString() (string, error) {
 	return string(bytes), nil
 }
 
+func (this *Response) ToJson(v interface{}) error {
+	bytes, err := this.ReadAll()
+	if err != nil {
+		return err
+	}
+	if err = json.Unmarshal(bytes, v); err != nil {
+		return err
+	}
+	return nil
+}
+
 // Prepare a request.
 func prepareRequest(method string, url_ string, headers map[string]string,
 	body io.Reader, options map[int]interface{}) (*http.Request, error) {
